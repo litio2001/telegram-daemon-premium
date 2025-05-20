@@ -30,8 +30,12 @@ import asyncio
 TDD_VERSION="1.14"
 
 TELEGRAM_DAEMON_API_ID = getenv("TELEGRAM_DAEMON_API_ID")
+if TELEGRAM_DAEMON_API_ID is not None:
+    TELEGRAM_DAEMON_API_ID = int(TELEGRAM_DAEMON_API_ID)
 TELEGRAM_DAEMON_API_HASH = getenv("TELEGRAM_DAEMON_API_HASH")
 TELEGRAM_DAEMON_CHANNEL = getenv("TELEGRAM_DAEMON_CHANNEL")
+if TELEGRAM_DAEMON_CHANNEL is not None:
+    TELEGRAM_DAEMON_CHANNEL = int(TELEGRAM_DAEMON_CHANNEL)
 
 TELEGRAM_DAEMON_SESSION_PATH = getenv("TELEGRAM_DAEMON_SESSION_PATH")
 
@@ -41,7 +45,17 @@ TELEGRAM_DAEMON_DUPLICATES=getenv("TELEGRAM_DAEMON_DUPLICATES", "rename")
 
 TELEGRAM_DAEMON_TEMP_SUFFIX="tdd"
 
-TELEGRAM_DAEMON_WORKERS=getenv("TELEGRAM_DAEMON_WORKERS", multiprocessing.cpu_count())
+_workers = getenv("TELEGRAM_DAEMON_WORKERS")
+if _workers is not None:
+    TELEGRAM_DAEMON_WORKERS = int(_workers)
+else:
+    TELEGRAM_DAEMON_WORKERS = multiprocessing.cpu_count()
+
+_part_size = getenv("TELEGRAM_DAEMON_PART_SIZE_KB")
+if _part_size is not None:
+    TELEGRAM_DAEMON_PART_SIZE_KB = int(_part_size)
+else:
+    TELEGRAM_DAEMON_PART_SIZE_KB = None
 
 parser = argparse.ArgumentParser(
     description="Script to download files from a Telegram Channel.")
