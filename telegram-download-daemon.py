@@ -17,6 +17,8 @@ from sessionManager import getSession, saveSession
 
 from telethon import TelegramClient, events, __version__
 from telethon.tl.types import PeerChannel, DocumentAttributeFilename, DocumentAttributeVideo
+# Añadir importaciones para funcionalidad Premium
+from telethon.tl.functions.users import GetFullUserRequest
 import logging
 
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s]%(name)s:%(message)s',
@@ -27,7 +29,7 @@ import argparse
 import asyncio
 
 
-TDD_VERSION="1.14"
+TDD_VERSION="1.15"  # Actualizar versión para reflejar soporte Premium
 
 TELEGRAM_DAEMON_API_ID = getenv("TELEGRAM_DAEMON_API_ID")
 TELEGRAM_DAEMON_API_HASH = getenv("TELEGRAM_DAEMON_API_HASH")
@@ -42,6 +44,14 @@ TELEGRAM_DAEMON_DUPLICATES=getenv("TELEGRAM_DAEMON_DUPLICATES", "rename")
 TELEGRAM_DAEMON_TEMP_SUFFIX="tdd"
 
 TELEGRAM_DAEMON_WORKERS=getenv("TELEGRAM_DAEMON_WORKERS", multiprocessing.cpu_count())
+
+# Añadir nuevas variables de entorno para Premium
+TELEGRAM_DAEMON_PREMIUM_MAX_SIZE=getenv("TELEGRAM_DAEMON_PREMIUM_MAX_SIZE", "4000")  # MB
+TELEGRAM_DAEMON_CHUNK_SIZE=getenv("TELEGRAM_DAEMON_CHUNK_SIZE", "512")  # KB
+
+# Variables globales para Premium - DECLARAR AQUÍ
+is_premium_account = False
+max_file_size = 2000  # MB por defecto (límite no Premium)
 
 parser = argparse.ArgumentParser(
     description="Script to download files from a Telegram Channel.")
@@ -117,11 +127,33 @@ proxy = None
 # End of interesting parameters
 
 async def sendHelloMessage(client, peerChannel):
+    global is_premium_account, max_file_size
+    
     entity = await client.get_entity(peerChannel)
-    print("Telegram Download Daemon "+TDD_VERSION+" using Telethon "+__version__)
-    print("  Simultaneous downloads:"+str(worker_count))
-    await client.send_message(entity, "Telegram Download Daemon "+TDD_VERSION+" using Telethon "+__version__)
-    await client.send_message(entity, "Hi! Ready for your files!")
+    
+    # Verificar si la cuenta es Premium
+    try:
+        me = await client.get_me()
+        full_user = await client(GetFullUserRequest(me))
+        is_premium_account = getattr(me, 'premium', False)
+        
+        if is_premium_account:
+            max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
+            account_type = "Premium"
+        else:
+            max_file_size = 2000
+            account_type = "Standard"
+    except Exception as e:
+        print(f"Error checking Premium status: {e}")
+        account_type = "Unknown"
+    
+    print(f"Telegram Download Daemon {TDD_VERSION} using Telethon {__version__}")
+    print(f"  Account type: {account_type}")
+    print(f"  Max file size: {max_file_size} MB")
+    print(f"  Simultaneous downloads: {str(worker_count)}")
+    
+    await client.send_message(entity, f"Telegram Download Daemon {TDD_VERSION} using Telethon {__version__}")
+    await client.send_message(entity, f"Account type: {account_type} - Ready for your files!")
  
 
 async def log_reply(message, reply):
@@ -207,6 +239,9 @@ with TelegramClient(getSession(), api_id, api_hash,
                             output = "Active downloads:\n\n" + output
                         else: 
                             output = "No active downloads"
+                        # Añadir información de Premium
+                        output += f"\n\nAccount type: {'Premium' if is_premium_account else 'Standard'}"
+                        output += f"\nMax file size: {max_file_size} MB"
                     except:
                         output = "Some error occured while checking the status. Retry."
                 elif command == "clean":
@@ -237,11 +272,28 @@ with TelegramClient(getSession(), api_id, api_hash,
             if event.media:
                 if hasattr(event.media, 'document') or hasattr(event.media,'photo'):
                     filename=getFilename(event)
-                    if ( path.exists("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX)) or path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
-                        message=await event.reply("{0} already exists. Ignoring it.".format(filename))
+                    
+                    # Verificar tamaño del archivo para cuentas no Premium
+                    if hasattr(event.media, 'document'):
+                        file_size_mb = event.media.document.size / (1024 * 1024)
+                        if not is_premium_account and file_size_mb > 2000:
+                            message = await event.reply(f"❌ File {filename} is too large ({file_size_mb:.2f} MB). Premium account required for files >2GB.")
+                        elif file_size_mb > max_file_size:
+                            message = await event.reply(f"❌ File {filename} exceeds maximum size ({file_size_mb:.2f} MB > {max_file_size} MB).")
+                        else:
+                            # Solo procesar si el archivo tiene un tamaño válido
+                            if ( path.exists("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX)) or path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
+                                message=await event.reply("{0} already exists. Ignoring it.".format(filename))
+                            else:
+                                message=await event.reply("{0} added to queue".format(filename))
+                                await queue.put([event, message])
                     else:
-                        message=await event.reply("{0} added to queue".format(filename))
-                        await queue.put([event, message])
+                        # Para fotos, procesar normalmente
+                        if ( path.exists("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX)) or path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
+                            message=await event.reply("{0} already exists. Ignoring it.".format(filename))
+                        else:
+                            message=await event.reply("{0} added to queue".format(filename))
+                            await queue.put([event, message])
                 else:
                     message=await event.reply("That is not downloadable. Try to send it as a file.")
 
@@ -269,21 +321,40 @@ with TelegramClient(getSession(), api_id, api_hash,
                 else: 
                    size=event.media.document.size
 
-                await log_reply(
-                    message,
-                    "Downloading file {0} ({1} bytes)".format(filename,size)
-                )
+                # Mostrar información adicional para archivos grandes
+                size_mb = size / (1024 * 1024)
+                download_info = "Downloading file {0} ({1} bytes".format(filename, size)
+                if size_mb > 100:
+                    download_info += " / {:.2f} MB".format(size_mb)
+                download_info += ")"
+                if is_premium_account and size_mb > 2000:
+                    download_info += " [Premium]"
+                
+                await log_reply(message, download_info)
 
                 download_callback = lambda received, total: set_progress(filename, message, received, total)
 
-                await client.download_media(event.message, "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), progress_callback = download_callback)
+                # Configurar chunk_size basado en el tipo de cuenta
+                download_chunk_size = int(TELEGRAM_DAEMON_CHUNK_SIZE) * 1024 if is_premium_account else 512 * 1024
+                
+                await client.download_media(
+                    event.message, 
+                    "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
+                    progress_callback = download_callback,
+                    chunk_size = download_chunk_size
+                )
                 set_progress(filename, message, 100, 100)
                 move("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), "{0}/{1}".format(downloadFolder,filename))
                 await log_reply(message, "{0} ready".format(filename))
 
                 queue.task_done()
             except Exception as e:
-                try: await log_reply(message, "Error: {}".format(str(e))) # If it failed, inform the user about it.
+                try: 
+                    error_msg = "Error: {}".format(str(e))
+                    # Añadir sugerencia si el error está relacionado con el tamaño
+                    if "file too large" in str(e).lower() and not is_premium_account:
+                        error_msg += "\n💡 Consider upgrading to Premium for large files."
+                    await log_reply(message, error_msg)
                 except: pass
                 print('Queue worker error: ', e)
  
