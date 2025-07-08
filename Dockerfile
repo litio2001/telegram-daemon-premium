@@ -25,7 +25,6 @@ WORKDIR /app
 
 # Copy application files
 COPY telegram-download-daemon.py sessionManager.py ./
-COPY premium_test.py ./
 COPY *.md ./
 
 # Set proper permissions

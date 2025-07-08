@@ -16,8 +16,3 @@ __pycache__/
 .vscode/
 *.log
 *.tmp
-test_*.py
-validate_project.py
-premium_test.py
-TESTING.md
-PROJECT_STATUS.md
