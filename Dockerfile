@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies globally
-RUN pip install --no-cache-dir telethon==1.35.0 cryptg==0.3 pysocks
+RUN pip install --no-cache-dir telethon==1.36.0 cryptg==0.3 pysocks
 
 # Set up application directory
 WORKDIR /app
@@ -30,7 +30,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Labels for metadata
 LABEL maintainer="Telegram Download Daemon Premium" \
-      version="1.15" \
+      version="1.17" \
       description="Premium-enhanced Telegram Download Daemon with auto-detection" \
       telegram-download-daemon="true"
 
