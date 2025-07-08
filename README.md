@@ -127,9 +127,6 @@ docker-compose up -d
 # Check logs and Premium detection
 docker-compose logs -f telegram-download-daemon
 
-# Check status
-docker-compose exec telegram-download-daemon python3 premium_test.py
-
 # Restart daemon
 docker-compose restart telegram-download-daemon
 ```
