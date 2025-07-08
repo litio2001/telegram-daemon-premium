@@ -17,8 +17,6 @@ from sessionManager import getSession, saveSession
 
 from telethon import TelegramClient, events, __version__
 from telethon.tl.types import PeerChannel, DocumentAttributeFilename, DocumentAttributeVideo
-# Añadir importaciones para funcionalidad Premium
-from telethon.tl.functions.users import GetFullUserRequest
 import logging
 
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s]%(name)s:%(message)s',
@@ -126,34 +124,92 @@ proxy = None
 
 # End of interesting parameters
 
+async def check_premium_status(client):
+    """
+    Verifica si la cuenta actual es Premium usando múltiples métodos.
+    Basado en la documentación oficial de Telegram API (Layer 195).
+    
+    Según el schema oficial: user#83314fca flags:# premium:flags.28?true
+    """
+    try:
+        # Obtener información del usuario actual
+        me = await client.get_me()
+        
+        print(f"🔍 Checking Premium status for user: {getattr(me, 'first_name', 'Unknown')}")
+        print(f"   User ID: {me.id}")
+        print(f"   Username: @{getattr(me, 'username', 'no_username')}")
+        
+        # Método 1: Verificar atributo premium directamente (más confiable)
+        if hasattr(me, 'premium') and me.premium is not None:
+            is_premium = bool(me.premium)
+            print(f"✅ Premium status detected via direct attribute: {is_premium}")
+            return is_premium
+        
+        # Método 2: Usar getattr con valor por defecto
+        premium_attr = getattr(me, 'premium', None)
+        if premium_attr is not None:
+            is_premium = bool(premium_attr)
+            print(f"✅ Premium status detected via getattr: {is_premium}")
+            return is_premium
+        
+        # Método 3: Verificar flags manualmente (bit 28 según documentación oficial)
+        if hasattr(me, 'flags') and me.flags is not None:
+            # Según schema oficial: premium:flags.28?true
+            premium_flag = bool(me.flags & (1 << 28))
+            print(f"✅ Premium status via flags bit 28: {premium_flag}")
+            print(f"   Raw flags: {hex(me.flags)} (binary: {bin(me.flags)})")
+            return premium_flag
+        
+        # Si no hay información disponible, asumir cuenta estándar
+        print("⚠️  No premium indicators found - assuming Standard account")
+        print("   This might be due to an older Telethon version or API limitations")
+        return False
+        
+    except Exception as e:
+        print(f"❌ Error checking premium status: {type(e).__name__}: {e}")
+        print("   Defaulting to Standard account")
+        return False
+
 async def sendHelloMessage(client, peerChannel):
     global is_premium_account, max_file_size
     
     entity = await client.get_entity(peerChannel)
     
-    # Verificar si la cuenta es Premium
-    try:
-        me = await client.get_me()
-        full_user = await client(GetFullUserRequest(me))
-        is_premium_account = getattr(me, 'premium', False)
-        
-        if is_premium_account:
-            max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
-            account_type = "Premium"
-        else:
-            max_file_size = 2000
-            account_type = "Standard"
-    except Exception as e:
-        print(f"Error checking Premium status: {e}")
-        account_type = "Unknown"
+    # Verificar si la cuenta es Premium usando método robusto
+    is_premium_account = await check_premium_status(client)
     
-    print(f"Telegram Download Daemon {TDD_VERSION} using Telethon {__version__}")
-    print(f"  Account type: {account_type}")
-    print(f"  Max file size: {max_file_size} MB")
-    print(f"  Simultaneous downloads: {str(worker_count)}")
+    # Configurar parámetros según el tipo de cuenta
+    if is_premium_account:
+        max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
+        account_type = "Premium ⭐"
+        chunk_size = int(TELEGRAM_DAEMON_CHUNK_SIZE)
+        features = "✅ Large files, ✅ Fast speeds, ✅ Premium features"
+    else:
+        max_file_size = 2000
+        account_type = "Standard"
+        chunk_size = 512
+        features = "⚡ Standard speeds, 📁 Basic features"
     
-    await client.send_message(entity, f"Telegram Download Daemon {TDD_VERSION} using Telethon {__version__}")
-    await client.send_message(entity, f"Account type: {account_type} - Ready for your files!")
+    print(f"")
+    print(f"🚀 Telegram Download Daemon {TDD_VERSION}")
+    print(f"📱 Telethon {__version__}")
+    print(f"👤 Account type: {account_type}")
+    print(f"📁 Max file size: {max_file_size} MB")
+    print(f"💾 Download chunk: {chunk_size} KB")
+    print(f"🔄 Workers: {str(worker_count)}")
+    print(f"✨ Features: {features}")
+    print(f"")
+    
+    # Mensaje de bienvenida detallado
+    hello_msg = f"🚀 **Telegram Download Daemon {TDD_VERSION}**\n"
+    hello_msg += f"📱 Telethon {__version__}\n\n"
+    hello_msg += f"👤 **Account:** {account_type}\n"
+    hello_msg += f"📁 **Max file size:** {max_file_size} MB\n"
+    hello_msg += f"🔄 **Workers:** {str(worker_count)}\n"
+    hello_msg += f"✨ **Features:** {features}\n\n"
+    hello_msg += f"⚡ **Ready for downloads!**"
+    
+    await client.send_message(entity, hello_msg)
  
 
 async def log_reply(message, reply):
