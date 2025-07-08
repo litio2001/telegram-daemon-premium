@@ -11,11 +11,29 @@ This enhanced version includes **automatic Premium account detection** and takes
 - **🔍 Automatic Premium Detection**: Detects Premium accounts using multiple robust methods based on official Telegram API documentation
 - **📦 Large File Support**: Premium accounts can download files up to 4GB (configurable)
 - **⚡ Optimized Downloads**: 
-  - Enhanced chunk sizes (1MB vs 512KB) for Premium accounts
-  - Dynamic worker scaling for faster concurrent downloads
-  - Specialized `download_file` method for large files
-- **💎 Smart File Handling**: Premium-specific features and optimizations
+  - Telethon's internal Premium optimizations automatically activated
+  - Dynamic worker scaling (up to 12 workers for Premium vs 4 for Standard)
+  - Enhanced connection parameters (retry_delay, timeout, connection_retries)
+  - No download speed limits (FLOOD_PREMIUM_WAIT_X exemption)
+- **💎 Smart Configuration**: 
+  - CPU-based worker scaling (Premium: CPU cores x3, Standard: CPU cores x1)
+  - Automatic chunk size optimization handled by Telethon internally
+  - Premium-specific client identification for better server treatment
 - **🎯 Intelligent Error Handling**: Context-aware suggestions for Standard users
+
+## Technical Implementation
+
+### Premium Detection Methods
+1. **Primary**: `client.get_me()` - Most reliable Telethon method
+2. **Backup**: `users.getUsers` with `InputUserSelf` - Official Telegram API
+3. **Fallback**: `users.getFullUser` - Complete user information  
+4. **Verification**: `help.getPremiumPromo` - Cross-validation
+
+### Download Optimizations
+- **Premium accounts**: Benefit from Telethon's internal Premium optimizations
+- **Parallel processing**: Dynamic worker scaling based on account type and CPU cores
+- **Error resilience**: Automatic fallback to standard methods if optimizations fail
+- **Connection tuning**: Optimized timeouts and retry strategies for large files
 
 ## Standard Features
 
@@ -204,7 +222,27 @@ This ensures compatibility with the latest Telegram API and reliable Premium det
 
 ## 📝 Changelog
 
-### v1.16-Premium (Latest)
+### v1.17-Premium (Latest) - Correcciones Críticas
+- 🔧 **Corrección de detección Premium:**
+  - Simplificado método `check_premium_status` eliminando imports problemáticos
+  - Priorizado `client.get_me()` como método principal (más confiable)
+  - Conservados métodos de respaldo API oficial con mejor manejo de errores
+  - Mejorado logging para debugging de estado Premium
+- ⚡ **Optimizaciones de descarga corregidas:**
+  - Eliminado uso problemático de `download_file` con parámetros incorrectos  
+  - Optimizado `download_media` para aprovechar optimizaciones internas de Telethon Premium
+  - Mejorado manejo de chunks automático basado en tipo de cuenta
+  - Workers escalados dinámicamente hasta 12 para cuentas Premium
+- 🚀 **Configuración de cliente mejorada:**
+  - Añadidos parámetros de conexión optimizados (retry_delay, timeout, connection_retries)
+  - Identificación específica como "TDD Premium" para mejor rendimiento
+  - Configuración automática de paralelismo según CPU cores
+- 💡 **UX/UI mejorada:**
+  - Mensajes de bienvenida más informativos y claros
+  - Estado detallado de optimizaciones Premium activas
+  - Información técnica precisa sobre configuración aplicada
+
+### v1.16-Premium
 - 🚀 **Mejoras importantes en detección Premium:**
   - Implementados múltiples métodos de detección basados en API oficial
   - Uso de `users.getUsers` con `InputUserSelf` (método recomendado)

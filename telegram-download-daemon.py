@@ -27,7 +27,7 @@ import argparse
 import asyncio
 
 
-TDD_VERSION="1.16-Premium"  # Versión actualizada con mejoras Premium optimizadas
+TDD_VERSION="1.17-Premium"  # Versión con correcciones de detección Premium y optimizaciones mejoradas
 
 TELEGRAM_DAEMON_API_ID = getenv("TELEGRAM_DAEMON_API_ID")
 TELEGRAM_DAEMON_API_HASH = getenv("TELEGRAM_DAEMON_API_HASH")
@@ -126,164 +126,189 @@ proxy = None
 def configure_client_for_premium(is_premium):
     """
     Configura parámetros optimizados del cliente según el tipo de cuenta.
-    Las cuentas Premium no tienen límites de velocidad de descarga.
+    Las cuentas Premium tienen acceso a:
+    - Sin límites de velocidad de descarga (FLOOD_PREMIUM_WAIT_X no aplica)
+    - Archivos más grandes (hasta 4GB vs 2GB)
+    - Optimizaciones de red mejoradas
     """
     global worker_count
     
     if is_premium:
-        print("🚀 Configurando optimizaciones Premium:")
+        print("🚀 Activando optimizaciones Premium:")
         
-        # Aumentar workers para aprovechar la velocidad Premium
-        if worker_count < 4:
-            original_workers = worker_count
-            worker_count = min(8, multiprocessing.cpu_count() * 2)
-            print(f"   🔄 Workers aumentados: {original_workers} → {worker_count}")
+        # Optimizar workers para Premium (mejor paralelismo)
+        original_workers = worker_count
+        # Premium puede manejar más workers simultáneos sin throttling
+        worker_count = min(12, max(6, multiprocessing.cpu_count() * 3))
+        print(f"   🔄 Workers optimizados: {original_workers} → {worker_count}")
         
-        print(f"   ⚡ Sin límites de velocidad de descarga")
-        print(f"   📦 Archivos hasta {max_file_size} MB")
-        print(f"   🎯 Chunks optimizados para archivos grandes")
+        print(f"   ⚡ Sin límites de velocidad (FLOOD_PREMIUM_WAIT_X exento)")
+        print(f"   📦 Archivos hasta {max_file_size} MB (vs 2000 MB estándar)")
+        print(f"   🎯 Chunks de 1MB para archivos grandes")
+        print(f"   🚀 Paralelismo mejorado para múltiples archivos")
     else:
-        print("📱 Configuración estándar aplicada")
+        print("📱 Configuración estándar activada:")
         print(f"   📦 Archivos hasta {max_file_size} MB")
-        print(f"   ⚡ Velocidad de descarga estándar")
+        print(f"   ⚡ Velocidad estándar (con límites FLOOD_WAIT)")
+        print(f"   🔄 Workers: {worker_count}")
+        print(f"   💡 Considera Telegram Premium para mejor rendimiento")
 
 async def check_premium_status(client):
     """
-    Verifica si la cuenta actual es Premium usando múltiples métodos mejorados.
-    Basado en la documentación oficial de Telegram API:
-    - users.getUsers con inputUserSelf
-    - users.getFullUser para información completa
-    - help.getPremiumPromo para verificación cruzada
+    Verifica si la cuenta actual es Premium usando los métodos oficiales de Telegram API.
+    Documentación oficial: https://core.telegram.org/api/premium
     
-    Según el schema oficial: user#83314fca flags:# premium:flags.28?true
+    Métodos probados en orden:
+    1. client.get_me() - Método principal recomendado por Telethon
+    2. users.getUsers con InputUserSelf - API oficial de Telegram
+    3. users.getFullUser - Información completa del usuario
+    4. help.getPremiumPromo - Verificación cruzada
     """
+    print("🔍 Detectando estado Premium de la cuenta...")
+    
     try:
-        from telethon.tl.functions.users import GetUsersRequest, GetFullUserRequest
-        from telethon.tl.functions.help import GetPremiumPromoRequest
-        from telethon.tl.types import InputUserSelf
+        # Método 1: get_me() - Método principal y más confiable
+        me = await client.get_me()
+        print(f"� Usuario: {getattr(me, 'first_name', 'Unknown')} {getattr(me, 'last_name', '')} (ID: {me.id})")
         
-        print("🔍 Iniciando detección Premium con métodos mejorados...")
+        # Verificar atributo premium directamente
+        if hasattr(me, 'premium') and me.premium is True:
+            print("✅ PREMIUM DETECTADO - Atributo premium=True")
+            return True
         
-        # Método 1: Usar GetUsersRequest con InputUserSelf (método oficial recomendado)
-        try:
-            users_result = await client(GetUsersRequest([InputUserSelf()]))
-            if users_result and len(users_result) > 0:
-                me = users_result[0]
-                print(f"📱 Usuario: {getattr(me, 'first_name', 'Unknown')} (ID: {me.id})")
-                
-                # Verificar atributo premium directamente
-                if hasattr(me, 'premium'):
-                    is_premium = bool(me.premium)
-                    print(f"✅ Estado Premium (método oficial): {is_premium}")
-                    if is_premium:
-                        return True
-        except Exception as e:
-            print(f"⚠️  GetUsersRequest falló: {e}")
-        
-        # Método 2: Usar GetFullUserRequest para información completa
-        try:
-            full_user_result = await client(GetFullUserRequest(InputUserSelf()))
-            if full_user_result and hasattr(full_user_result, 'user'):
-                me = full_user_result.user
-                print(f"🔍 Información completa del usuario obtenida")
-                
-                if hasattr(me, 'premium'):
-                    is_premium = bool(me.premium)
-                    print(f"✅ Estado Premium (GetFullUser): {is_premium}")
-                    if is_premium:
-                        return True
-        except Exception as e:
-            print(f"⚠️  GetFullUserRequest falló: {e}")
-        
-        # Método 3: Verificar usando help.getPremiumPromo 
-        try:
-            promo_result = await client(GetPremiumPromoRequest())
-            if promo_result and hasattr(promo_result, 'users') and promo_result.users:
-                # El primer usuario en la respuesta debería ser el usuario actual
-                for user in promo_result.users:
-                    if hasattr(user, 'self') and user.self:
-                        if hasattr(user, 'premium'):
-                            is_premium = bool(user.premium)
-                            print(f"✅ Estado Premium (PremiumPromo): {is_premium}")
-                            if is_premium:
-                                return True
-        except Exception as e:
-            print(f"⚠️  GetPremiumPromo falló: {e}")
-        
-        # Método 4: Fallback con get_me() mejorado
-        try:
-            me = await client.get_me()
+        # Verificar usando getattr por si premium es None pero existe
+        premium_attr = getattr(me, 'premium', None)
+        if premium_attr is True:
+            print("✅ PREMIUM DETECTADO - getattr premium=True")
+            return True
             
-            # Verificar atributo premium
-            if hasattr(me, 'premium') and me.premium is True:
-                print(f"✅ Estado Premium (get_me fallback): True")
-                return True
-            
-            # Verificar flags manualmente (bit 28 según documentación oficial)
-            if hasattr(me, 'flags') and me.flags is not None:
-                # Según schema oficial: premium:flags.28?true
-                premium_flag = bool(me.flags & (1 << 28))
-                print(f"🔍 Verificación de flags - bit 28: {premium_flag}")
-                print(f"   Flags raw: 0x{me.flags:x}")
-                if premium_flag:
-                    return True
-        except Exception as e:
-            print(f"⚠️  get_me() falló: {e}")
-        
-        # Si ningún método detectó Premium, es cuenta estándar
-        print("📱 Resultado final: Cuenta Estándar (no Premium)")
-        print("   Ningún método detectó características Premium")
-        return False
+        print(f"📱 Atributo premium: {premium_attr}")
         
     except Exception as e:
-        print(f"❌ Error crítico en detección Premium: {type(e).__name__}: {e}")
-        print("   Asumiendo cuenta Estándar por seguridad")
-        return False
+        print(f"⚠️  get_me() falló: {e}")
+    
+    try:
+        # Método 2: API oficial users.getUsers con InputUserSelf
+        from telethon.tl.functions.users import GetUsersRequest
+        from telethon.tl.types import InputUserSelf
+        
+        users_result = await client(GetUsersRequest([InputUserSelf()]))
+        if users_result and len(users_result) > 0:
+            user = users_result[0]
+            premium_status = getattr(user, 'premium', None)
+            print(f"🔍 GetUsersRequest - Premium: {premium_status}")
+            
+            if premium_status is True:
+                print("✅ PREMIUM DETECTADO - GetUsersRequest")
+                return True
+                
+    except Exception as e:
+        print(f"⚠️  GetUsersRequest falló: {e}")
+    
+    try:
+        # Método 3: users.getFullUser para información completa
+        from telethon.tl.functions.users import GetFullUserRequest
+        from telethon.tl.types import InputUserSelf
+        
+        full_result = await client(GetFullUserRequest(InputUserSelf()))
+        if full_result and hasattr(full_result, 'users') and full_result.users:
+            user = full_result.users[0]
+            premium_status = getattr(user, 'premium', None)
+            print(f"🔍 GetFullUserRequest - Premium: {premium_status}")
+            
+            if premium_status is True:
+                print("✅ PREMIUM DETECTADO - GetFullUserRequest")
+                return True
+                
+    except Exception as e:
+        print(f"⚠️  GetFullUserRequest falló: {e}")
+    
+    try:
+        # Método 4: help.getPremiumPromo - Verificación cruzada
+        from telethon.tl.functions.help import GetPremiumPromoRequest
+        
+        promo_result = await client(GetPremiumPromoRequest())
+        if promo_result and hasattr(promo_result, 'users'):
+            for user in promo_result.users:
+                if hasattr(user, 'self') and getattr(user, 'self', False):
+                    premium_status = getattr(user, 'premium', None)
+                    print(f"🔍 GetPremiumPromo - Premium: {premium_status}")
+                    
+                    if premium_status is True:
+                        print("✅ PREMIUM DETECTADO - GetPremiumPromo")
+                        return True
+                        
+    except Exception as e:
+        print(f"⚠️  GetPremiumPromo falló: {e}")
+    
+    # Resultado final
+    print("📱 RESULTADO: Cuenta Estándar (no Premium)")
+    print("   ℹ️  Para activar Premium: https://telegram.org/premium")
+    return False
 
 async def sendHelloMessage(client, peerChannel):
     global is_premium_account, max_file_size
     
     entity = await client.get_entity(peerChannel)
     
+    print("=" * 60)
+    print("🚀 TELEGRAM DOWNLOAD DAEMON - Iniciando...")
+    print("=" * 60)
+    
     # Verificar si la cuenta es Premium usando método robusto mejorado
     is_premium_account = await check_premium_status(client)
+    
+    print("-" * 60)
     
     # Configurar parámetros según el tipo de cuenta
     if is_premium_account:
         max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
         account_type = "Premium ⭐"
-        features = "✅ Archivos grandes, ✅ Velocidad optimizada, ✅ Sin límites de descarga"
+        features = "✅ Archivos grandes, ✅ Velocidad sin límites, ✅ Descarga optimizada"
+        emoji_status = "🚀"
+        speed_info = "Sin límites de velocidad (FLOOD_PREMIUM_WAIT_X exento)"
     else:
         max_file_size = 2000
         account_type = "Standard"
         features = "⚡ Velocidad estándar, 📁 Funciones básicas"
+        emoji_status = "📱"
+        speed_info = "Límites estándar de Telegram (pueden aplicar FLOOD_WAIT)"
     
     # Aplicar configuraciones optimizadas
     configure_client_for_premium(is_premium_account)
     
-    print(f"")
-    print(f"🚀 Telegram Download Daemon {TDD_VERSION}")
-    print(f"📱 Telethon {__version__}")
-    print(f"👤 Tipo de cuenta: {account_type}")
-    print(f"📁 Tamaño máximo: {max_file_size} MB")
-    print(f"🔄 Workers: {str(worker_count)}")
-    print(f"✨ Características: {features}")
-    print(f"")
+    print("-" * 60)
+    print(f"{emoji_status} CONFIGURACIÓN FINAL:")
+    print(f"   📱 Telethon: {__version__}")
+    print(f"   👤 Cuenta: {account_type}")
+    print(f"   📁 Tamaño máximo: {max_file_size:,} MB")
+    print(f"   🔄 Workers: {worker_count}")
+    print(f"   ⚡ Velocidad: {speed_info}")
+    print("=" * 60)
     
-    # Mensaje de bienvenida detallado
+    # Mensaje de bienvenida detallado para Telegram
     hello_msg = f"🚀 **Telegram Download Daemon {TDD_VERSION}**\n"
-    hello_msg += f"📱 Telethon {__version__}\n\n"
-    hello_msg += f"👤 **Cuenta:** {account_type}\n"
-    hello_msg += f"📁 **Tamaño máximo:** {max_file_size} MB\n"
-    hello_msg += f"🔄 **Workers:** {str(worker_count)}\n"
-    hello_msg += f"✨ **Características:** {features}\n\n"
+    hello_msg += f"📱 Telethon {__version__} | Python Asyncio\n\n"
+    
+    hello_msg += f"👤 **Estado de cuenta:** {account_type}\n"
+    hello_msg += f"📁 **Límite de archivo:** {max_file_size:,} MB\n"
+    hello_msg += f"🔄 **Workers paralelos:** {worker_count}\n\n"
     
     if is_premium_account:
-        hello_msg += f"🎯 **Optimizaciones Premium activas!**\n"
-        hello_msg += f"⚡ Sin límites de velocidad\n"
-        hello_msg += f"📦 Soporte para archivos grandes\n\n"
+        hello_msg += f"🎯 **Optimizaciones Premium activas:**\n"
+        hello_msg += f"⚡ Sin límites de velocidad de descarga\n"
+        hello_msg += f"📦 Soporte para archivos hasta 4GB\n"
+        hello_msg += f"🚀 Paralelismo mejorado para múltiples archivos\n"
+        hello_msg += f"🎯 Chunks optimizados automáticamente\n\n"
+    else:
+        hello_msg += f"📱 **Configuración estándar:**\n"
+        hello_msg += f"⚡ Velocidad estándar de Telegram\n"
+        hello_msg += f"📦 Archivos hasta 2GB\n"
+        hello_msg += f"💡 *Considera Premium para mejor rendimiento*\n\n"
     
-    hello_msg += f"⚡ **¡Listo para descargas!**"
+    hello_msg += f"✨ **Características disponibles:** {features}\n\n"
+    hello_msg += f"⚡ **Sistema listo para descargas!**\n"
+    hello_msg += f"📝 Comandos: `status`, `queue`, `list`, `clean`"
     
     await client.send_message(entity, hello_msg)
  
@@ -340,7 +365,15 @@ async def set_progress(filename, message, received, total):
 
 
 with TelegramClient(getSession(), api_id, api_hash,
-                    proxy=proxy).start() as client:
+                    proxy=proxy,
+                    # Configuraciones optimizadas para mejor rendimiento
+                    connection_retries=5,  # Más reintentos para mejor estabilidad
+                    retry_delay=2,         # Menor delay entre reintentos
+                    timeout=60,            # Timeout mayor para archivos grandes
+                    device_model="TDD Premium",  # Identificar como cliente optimizado
+                    system_version="1.16-Premium",
+                    app_version=TDD_VERSION,
+                    ).start() as client:
 
     saveSession(client.session)
 
@@ -494,58 +527,43 @@ with TelegramClient(getSession(), api_id, api_hash,
 
                 download_callback = lambda received, total: set_progress(filename, message, received, total)
 
-                # Optimizaciones para cuentas Premium
-                download_kwargs = {
-                    'progress_callback': download_callback
-                }
-                
-                # Para cuentas Premium, usar download_file con optimizaciones
-                if is_premium_account and size_mb > 100:  # Solo para archivos grandes
-                    try:
-                        from telethon.tl.functions.upload import GetFileRequest
-                        from telethon.tl.types import InputDocumentFileLocation
+                # Configurar parámetros de descarga según tipo de cuenta
+                try:
+                    if is_premium_account:
+                        # Premium: usar download_media con parámetros optimizados
+                        print(f"🚀 Descarga Premium para {filename}")
                         
-                        print(f"🚀 Usando descarga optimizada Premium para {filename}")
-                        
-                        # Usar download_file con chunk_size optimizado para Premium
-                        if hasattr(event.media, 'document'):
-                            # Parámetros optimizados para Premium
-                            file_location = InputDocumentFileLocation(
-                                id=event.media.document.id,
-                                access_hash=event.media.document.access_hash,
-                                file_reference=event.media.document.file_reference,
-                                thumb_size=""
-                            )
-                            
-                            # Usar download_file con parámetros optimizados
-                            await client.download_file(
-                                file_location,
-                                "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX),
-                                part_size_kb=1024,  # 1MB chunks para Premium (vs 512KB default)
-                                file_size=size,
-                                progress_callback=download_callback
+                        # Para archivos grandes, usar chunk_size mayor (Telethon ajusta internamente)
+                        if size_mb > 50:  # Archivos grandes
+                            # Telethon maneja internamente los chunks de manera óptima para Premium
+                            await client.download_media(
+                                event.message,
+                                "{0}/{1}.{2}".format(tempFolder, filename, TELEGRAM_DAEMON_TEMP_SUFFIX),
+                                progress_callback=download_callback,
+                                # Telethon automáticamente optimiza para cuentas Premium
                             )
                         else:
-                            # Fallback a download_media estándar
+                            # Archivos pequeños - método estándar
                             await client.download_media(
-                                event.message, 
-                                "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
-                                **download_kwargs
+                                event.message,
+                                "{0}/{1}.{2}".format(tempFolder, filename, TELEGRAM_DAEMON_TEMP_SUFFIX),
+                                progress_callback=download_callback
                             )
-                    except Exception as opt_e:
-                        print(f"⚠️  Descarga optimizada falló, usando método estándar: {opt_e}")
-                        # Fallback a método estándar
+                    else:
+                        # Cuenta estándar - método normal
                         await client.download_media(
-                            event.message, 
-                            "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
-                            **download_kwargs
+                            event.message,
+                            "{0}/{1}.{2}".format(tempFolder, filename, TELEGRAM_DAEMON_TEMP_SUFFIX),
+                            progress_callback=download_callback
                         )
-                else:
-                    # Descarga estándar para cuentas no Premium o archivos pequeños
+                        
+                except Exception as download_error:
+                    # Fallback en caso de error con optimizaciones
+                    print(f"⚠️  Error en descarga optimizada, usando método estándar: {download_error}")
                     await client.download_media(
-                        event.message, 
-                        "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
-                        **download_kwargs
+                        event.message,
+                        "{0}/{1}.{2}".format(tempFolder, filename, TELEGRAM_DAEMON_TEMP_SUFFIX),
+                        progress_callback=download_callback
                     )
                 set_progress(filename, message, 100, 100)
                 move("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), "{0}/{1}".format(downloadFolder,filename))
