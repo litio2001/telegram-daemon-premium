@@ -1,7 +1,41 @@
-.vscode
-.venv
-.env
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
+# Virtual environments
+.venv/
+.env
+venv/
+env/
+
+# Session files
 *.session
 
-__pycache__
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+*.egg-info/
+dist/
+build/
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+config.local.env
+docker-compose.override.yml

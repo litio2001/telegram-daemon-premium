@@ -79,22 +79,77 @@ You can also 'talk' to this daemon using your Telegram client:
 
 
 
-# Docker
+# Docker (Premium Enhanced)
 
 `docker pull alfem/telegram-download-daemon`
+
+## 🐳 Quick Docker Setup
+
+### 1. **Configure Environment Variables**
+
+Edit the `docker-compose.yml` file with your credentials:
+
+```yaml
+environment:
+  TELEGRAM_DAEMON_API_ID: "your_api_id"
+  TELEGRAM_DAEMON_API_HASH: "your_api_hash"
+  TELEGRAM_DAEMON_CHANNEL: "your_channel_id"
+  # Premium settings (optional)
+  TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # MB
+  TELEGRAM_DAEMON_CHUNK_SIZE: "512"         # KB
+```
+
+### 2. **First-Time Setup (Interactive)**
 
 When we use the [`TelegramClient`](https://docs.telethon.dev/en/latest/quick-references/client-reference.html#telegramclient) method, it requires us to interact with the `Console` to give it our phone number and confirm with a security code.
 
 To do this, when using *Docker*, you need to **interactively** run the container for the first time.
 
-When you use `docker-compose`, the `.session` file, where the login is stored is kept in *Volume* outside the container. Therefore, when using docker-compose you are required to:
+```bash
+# Setup and validate configuration
+chmod +x setup-docker.sh
+./setup-docker.sh
+
+# Interactive first-time setup
+docker-compose run --rm telegram-download-daemon
+# Interact with the console to authenticate yourself.
+# You'll see Premium detection information during startup
+# See the message "Signed in successfully as {your name}"
+# Close the container (Ctrl+C)
+
+# Start daemon in background
+docker-compose up -d
+```
+
+### 3. **Monitor and Manage**
 
 ```bash
-$ docker-compose run --rm telegram-download-daemon
-# Interact with the console to authenticate yourself.
-# See the message "Signed in successfully as {youe name}"
-# Close the container
-$ docker-compose up -d
+# Check logs and Premium detection
+docker-compose logs -f telegram-download-daemon
+
+# Check status
+docker-compose exec telegram-download-daemon python3 premium_test.py
+
+# Restart daemon
+docker-compose restart telegram-download-daemon
+```
+
+## 🔧 Docker Premium Configuration
+
+The `docker-compose.yml` includes Premium-specific environment variables:
+
+```yaml
+environment:
+  # Standard configuration
+  TELEGRAM_DAEMON_API_ID: "YOUR API ID HERE"
+  TELEGRAM_DAEMON_API_HASH: "YOUR API HASH HERE"
+  TELEGRAM_DAEMON_CHANNEL: "YOUR CHANNEL ID HERE"
+  TELEGRAM_DAEMON_DEST: "/downloads"
+  TELEGRAM_DAEMON_SESSION_PATH: "/session"
+  
+  # Premium-specific settings
+  TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # Max file size in MB
+  TELEGRAM_DAEMON_CHUNK_SIZE: "512"         # Download chunk size in KB
 ```
 
 See the `sessions` volume in the [docker-compose.yml](docker-compose.yml) file.

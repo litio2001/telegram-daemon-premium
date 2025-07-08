@@ -1,0 +1,23 @@
+# Docker ignore file for telegram-download-daemon
+.git
+.github
+.gitignore
+*.session
+.env
+.env.local
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.vscode/
+*.log
+*.tmp
+test_*.py
+validate_project.py
+premium_test.py
+TESTING.md
+PROJECT_STATUS.md
