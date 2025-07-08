@@ -106,10 +106,6 @@ When we use the [`TelegramClient`](https://docs.telethon.dev/en/latest/quick-ref
 To do this, when using *Docker*, you need to **interactively** run the container for the first time.
 
 ```bash
-# Setup and validate configuration
-chmod +x setup-docker.sh
-./setup-docker.sh
-
 # Interactive first-time setup
 docker-compose run --rm telegram-download-daemon
 # Interact with the console to authenticate yourself.
@@ -119,6 +115,28 @@ docker-compose run --rm telegram-download-daemon
 
 # Start daemon in background
 docker-compose up -d
+```
+
+### ⚠️ **Permission Issues Fix**
+
+If you get permission errors like `Permission denied: '/session/DownloadDaemon.session'`:
+
+```bash
+# Option 1: Fix volume permissions (Linux/macOS)
+sudo chown -R 1000:1000 /var/lib/docker/volumes/
+
+# Option 2: Use bind mounts instead of volumes
+# Edit docker-compose.yml and replace:
+volumes:
+  - downloads:/downloads
+  - sessions:/session
+# With:
+  - ./downloads:/downloads
+  - ./sessions:/session
+
+# Then create directories with correct permissions:
+mkdir -p downloads sessions
+chmod 777 downloads sessions
 ```
 
 ### 3. **Monitor and Manage**

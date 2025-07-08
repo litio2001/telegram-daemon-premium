@@ -31,13 +31,13 @@ COPY *.md ./
 RUN chmod 755 /app/*.py && \
     chown -R telegram:telegram /app && \
     mkdir -p /downloads /session && \
-    chown -R telegram:telegram /downloads /session
+    chmod 777 /downloads /session  # Allow any user to write
 
-# Switch to non-root user
-USER telegram
+# Don't switch to non-root user yet - let docker-compose handle user mapping
+# USER telegram
 
-# Add user's local bin to PATH
-ENV PATH=/home/telegram/.local/bin:$PATH
+# Add user's local bin to PATH (for both root and user)
+ENV PATH=/home/telegram/.local/bin:/root/.local/bin:$PATH
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

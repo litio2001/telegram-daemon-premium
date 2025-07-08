@@ -5,7 +5,8 @@ services:
     #build: .
     image: alfem/telegram-download-daemon:latest
     container_name: telegram-download
-    read_only: true
+    # read_only: true  # Commented out to allow session file creation
+    user: "1000:1000"  # Use host user ID to avoid permission issues
     environment:
       TELEGRAM_DAEMON_API_ID: "YOUR API ID HERE"
       TELEGRAM_DAEMON_API_HASH: "YOUR API HASH HERE"
@@ -19,8 +20,13 @@ services:
     volumes:
        - downloads:/downloads
        - sessions:/session
+    # Ensure directories exist and have correct permissions
+    tmpfs:
+       - /tmp
     restart: unless-stopped
 
 volumes:
     downloads:
+      driver: local
     sessions:
+      driver: local
