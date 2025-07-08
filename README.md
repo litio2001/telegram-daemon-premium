@@ -8,10 +8,14 @@ A Telegram Daemon (not a bot) for file downloading automation with **Premium acc
 
 This enhanced version includes **automatic Premium account detection** and takes advantage of Telegram Premium capabilities:
 
-- **🔍 Automatic Premium Detection**: Detects Premium accounts using multiple methods based on official Telegram API documentation
+- **🔍 Automatic Premium Detection**: Detects Premium accounts using multiple robust methods based on official Telegram API documentation
 - **📦 Large File Support**: Premium accounts can download files up to 4GB (configurable)
-- **⚡ Optimized Downloads**: Enhanced chunk sizes for Premium accounts
+- **⚡ Optimized Downloads**: 
+  - Enhanced chunk sizes (1MB vs 512KB) for Premium accounts
+  - Dynamic worker scaling for faster concurrent downloads
+  - Specialized `download_file` method for large files
 - **💎 Smart File Handling**: Premium-specific features and optimizations
+- **🎯 Intelligent Error Handling**: Context-aware suggestions for Standard users
 
 ## Standard Features
 
@@ -199,6 +203,22 @@ user#83314fca flags:# ... premium:flags.28?true ... = User;
 This ensures compatibility with the latest Telegram API and reliable Premium detection.
 
 ## 📝 Changelog
+
+### v1.16-Premium (Latest)
+- 🚀 **Mejoras importantes en detección Premium:**
+  - Implementados múltiples métodos de detección basados en API oficial
+  - Uso de `users.getUsers` con `InputUserSelf` (método recomendado)
+  - Fallback con `users.getFullUser` para máxima compatibilidad
+  - Verificación cruzada con `help.getPremiumPromo`
+- ⚡ **Optimizaciones de velocidad para Premium:**
+  - Chunks de 1MB para cuentas Premium (vs 512KB estándar)
+  - Workers dinámicos aumentados automáticamente
+  - Uso de `download_file` optimizado para archivos grandes
+- 💎 **Interfaz mejorada:**
+  - Mensajes informativos mejorados
+  - Estado detallado de cuenta Premium
+  - Información de descarga más clara
+  - Sugerencias inteligentes para usuarios estándar
 
 ### v1.15-Premium
 - ✅ Added automatic Premium account detection

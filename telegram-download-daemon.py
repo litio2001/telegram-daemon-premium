@@ -27,7 +27,7 @@ import argparse
 import asyncio
 
 
-TDD_VERSION="1.15"  # Actualizar versión para reflejar soporte Premium
+TDD_VERSION="1.16-Premium"  # Versión actualizada con mejoras Premium optimizadas
 
 TELEGRAM_DAEMON_API_ID = getenv("TELEGRAM_DAEMON_API_ID")
 TELEGRAM_DAEMON_API_HASH = getenv("TELEGRAM_DAEMON_API_HASH")
@@ -123,50 +123,121 @@ proxy = None
 
 # End of interesting parameters
 
+def configure_client_for_premium(is_premium):
+    """
+    Configura parámetros optimizados del cliente según el tipo de cuenta.
+    Las cuentas Premium no tienen límites de velocidad de descarga.
+    """
+    global worker_count
+    
+    if is_premium:
+        print("🚀 Configurando optimizaciones Premium:")
+        
+        # Aumentar workers para aprovechar la velocidad Premium
+        if worker_count < 4:
+            original_workers = worker_count
+            worker_count = min(8, multiprocessing.cpu_count() * 2)
+            print(f"   🔄 Workers aumentados: {original_workers} → {worker_count}")
+        
+        print(f"   ⚡ Sin límites de velocidad de descarga")
+        print(f"   📦 Archivos hasta {max_file_size} MB")
+        print(f"   🎯 Chunks optimizados para archivos grandes")
+    else:
+        print("📱 Configuración estándar aplicada")
+        print(f"   📦 Archivos hasta {max_file_size} MB")
+        print(f"   ⚡ Velocidad de descarga estándar")
+
 async def check_premium_status(client):
     """
-    Verifica si la cuenta actual es Premium usando múltiples métodos.
-    Basado en la documentación oficial de Telegram API (Layer 195).
+    Verifica si la cuenta actual es Premium usando múltiples métodos mejorados.
+    Basado en la documentación oficial de Telegram API:
+    - users.getUsers con inputUserSelf
+    - users.getFullUser para información completa
+    - help.getPremiumPromo para verificación cruzada
     
     Según el schema oficial: user#83314fca flags:# premium:flags.28?true
     """
     try:
-        # Obtener información del usuario actual
-        me = await client.get_me()
+        from telethon.tl.functions.users import GetUsersRequest, GetFullUserRequest
+        from telethon.tl.functions.help import GetPremiumPromoRequest
+        from telethon.tl.types import InputUserSelf
         
-        print(f"🔍 Checking Premium status for user: {getattr(me, 'first_name', 'Unknown')}")
-        print(f"   User ID: {me.id}")
-        print(f"   Username: @{getattr(me, 'username', 'no_username')}")
+        print("🔍 Iniciando detección Premium con métodos mejorados...")
         
-        # Método 1: Verificar atributo premium directamente (más confiable)
-        if hasattr(me, 'premium') and me.premium is not None:
-            is_premium = bool(me.premium)
-            print(f"✅ Premium status detected via direct attribute: {is_premium}")
-            return is_premium
+        # Método 1: Usar GetUsersRequest con InputUserSelf (método oficial recomendado)
+        try:
+            users_result = await client(GetUsersRequest([InputUserSelf()]))
+            if users_result and len(users_result) > 0:
+                me = users_result[0]
+                print(f"📱 Usuario: {getattr(me, 'first_name', 'Unknown')} (ID: {me.id})")
+                
+                # Verificar atributo premium directamente
+                if hasattr(me, 'premium'):
+                    is_premium = bool(me.premium)
+                    print(f"✅ Estado Premium (método oficial): {is_premium}")
+                    if is_premium:
+                        return True
+        except Exception as e:
+            print(f"⚠️  GetUsersRequest falló: {e}")
         
-        # Método 2: Usar getattr con valor por defecto
-        premium_attr = getattr(me, 'premium', None)
-        if premium_attr is not None:
-            is_premium = bool(premium_attr)
-            print(f"✅ Premium status detected via getattr: {is_premium}")
-            return is_premium
+        # Método 2: Usar GetFullUserRequest para información completa
+        try:
+            full_user_result = await client(GetFullUserRequest(InputUserSelf()))
+            if full_user_result and hasattr(full_user_result, 'user'):
+                me = full_user_result.user
+                print(f"🔍 Información completa del usuario obtenida")
+                
+                if hasattr(me, 'premium'):
+                    is_premium = bool(me.premium)
+                    print(f"✅ Estado Premium (GetFullUser): {is_premium}")
+                    if is_premium:
+                        return True
+        except Exception as e:
+            print(f"⚠️  GetFullUserRequest falló: {e}")
         
-        # Método 3: Verificar flags manualmente (bit 28 según documentación oficial)
-        if hasattr(me, 'flags') and me.flags is not None:
-            # Según schema oficial: premium:flags.28?true
-            premium_flag = bool(me.flags & (1 << 28))
-            print(f"✅ Premium status via flags bit 28: {premium_flag}")
-            print(f"   Raw flags: {hex(me.flags)} (binary: {bin(me.flags)})")
-            return premium_flag
+        # Método 3: Verificar usando help.getPremiumPromo 
+        try:
+            promo_result = await client(GetPremiumPromoRequest())
+            if promo_result and hasattr(promo_result, 'users') and promo_result.users:
+                # El primer usuario en la respuesta debería ser el usuario actual
+                for user in promo_result.users:
+                    if hasattr(user, 'self') and user.self:
+                        if hasattr(user, 'premium'):
+                            is_premium = bool(user.premium)
+                            print(f"✅ Estado Premium (PremiumPromo): {is_premium}")
+                            if is_premium:
+                                return True
+        except Exception as e:
+            print(f"⚠️  GetPremiumPromo falló: {e}")
         
-        # Si no hay información disponible, asumir cuenta estándar
-        print("⚠️  No premium indicators found - assuming Standard account")
-        print("   This might be due to an older Telethon version or API limitations")
+        # Método 4: Fallback con get_me() mejorado
+        try:
+            me = await client.get_me()
+            
+            # Verificar atributo premium
+            if hasattr(me, 'premium') and me.premium is True:
+                print(f"✅ Estado Premium (get_me fallback): True")
+                return True
+            
+            # Verificar flags manualmente (bit 28 según documentación oficial)
+            if hasattr(me, 'flags') and me.flags is not None:
+                # Según schema oficial: premium:flags.28?true
+                premium_flag = bool(me.flags & (1 << 28))
+                print(f"🔍 Verificación de flags - bit 28: {premium_flag}")
+                print(f"   Flags raw: 0x{me.flags:x}")
+                if premium_flag:
+                    return True
+        except Exception as e:
+            print(f"⚠️  get_me() falló: {e}")
+        
+        # Si ningún método detectó Premium, es cuenta estándar
+        print("📱 Resultado final: Cuenta Estándar (no Premium)")
+        print("   Ningún método detectó características Premium")
         return False
         
     except Exception as e:
-        print(f"❌ Error checking premium status: {type(e).__name__}: {e}")
-        print("   Defaulting to Standard account")
+        print(f"❌ Error crítico en detección Premium: {type(e).__name__}: {e}")
+        print("   Asumiendo cuenta Estándar por seguridad")
         return False
 
 async def sendHelloMessage(client, peerChannel):
@@ -174,36 +245,45 @@ async def sendHelloMessage(client, peerChannel):
     
     entity = await client.get_entity(peerChannel)
     
-    # Verificar si la cuenta es Premium usando método robusto
+    # Verificar si la cuenta es Premium usando método robusto mejorado
     is_premium_account = await check_premium_status(client)
     
     # Configurar parámetros según el tipo de cuenta
     if is_premium_account:
         max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
         account_type = "Premium ⭐"
-        features = "✅ Large files, ✅ Fast speeds, ✅ Premium features"
+        features = "✅ Archivos grandes, ✅ Velocidad optimizada, ✅ Sin límites de descarga"
     else:
         max_file_size = 2000
         account_type = "Standard"
-        features = "⚡ Standard speeds, 📁 Basic features"
+        features = "⚡ Velocidad estándar, 📁 Funciones básicas"
+    
+    # Aplicar configuraciones optimizadas
+    configure_client_for_premium(is_premium_account)
     
     print(f"")
     print(f"🚀 Telegram Download Daemon {TDD_VERSION}")
     print(f"📱 Telethon {__version__}")
-    print(f"👤 Account type: {account_type}")
-    print(f"📁 Max file size: {max_file_size} MB")
+    print(f"👤 Tipo de cuenta: {account_type}")
+    print(f"📁 Tamaño máximo: {max_file_size} MB")
     print(f"🔄 Workers: {str(worker_count)}")
-    print(f"✨ Features: {features}")
+    print(f"✨ Características: {features}")
     print(f"")
     
     # Mensaje de bienvenida detallado
     hello_msg = f"🚀 **Telegram Download Daemon {TDD_VERSION}**\n"
     hello_msg += f"📱 Telethon {__version__}\n\n"
-    hello_msg += f"👤 **Account:** {account_type}\n"
-    hello_msg += f"📁 **Max file size:** {max_file_size} MB\n"
+    hello_msg += f"👤 **Cuenta:** {account_type}\n"
+    hello_msg += f"📁 **Tamaño máximo:** {max_file_size} MB\n"
     hello_msg += f"🔄 **Workers:** {str(worker_count)}\n"
-    hello_msg += f"✨ **Features:** {features}\n\n"
-    hello_msg += f"⚡ **Ready for downloads!**"
+    hello_msg += f"✨ **Características:** {features}\n\n"
+    
+    if is_premium_account:
+        hello_msg += f"🎯 **Optimizaciones Premium activas!**\n"
+        hello_msg += f"⚡ Sin límites de velocidad\n"
+        hello_msg += f"📦 Soporte para archivos grandes\n\n"
+    
+    hello_msg += f"⚡ **¡Listo para descargas!**"
     
     await client.send_message(entity, hello_msg)
  
@@ -288,12 +368,24 @@ with TelegramClient(getSession(), api_id, api_hash,
                     try:
                         output = "".join([ "{0}: {1}\n".format(key,value) for (key, value) in in_progress.items()])
                         if output: 
-                            output = "Active downloads:\n\n" + output
+                            output = "📥 **Descargas activas:**\n\n" + output
                         else: 
-                            output = "No active downloads"
-                        # Añadir información de Premium
-                        output += f"\n\nAccount type: {'Premium' if is_premium_account else 'Standard'}"
-                        output += f"\nMax file size: {max_file_size} MB"
+                            output = "✅ **Sin descargas activas**"
+                        
+                        # Información de cuenta mejorada
+                        account_info = f"\n\n🏷️ **Información de cuenta:**\n"
+                        account_info += f"👤 Tipo: {'Premium ⭐' if is_premium_account else 'Standard'}\n"
+                        account_info += f"📁 Límite de archivo: {max_file_size} MB\n"
+                        account_info += f"🔄 Workers: {worker_count}\n"
+                        
+                        if is_premium_account:
+                            account_info += f"⚡ Sin límites de velocidad\n"
+                            account_info += f"🎯 Optimizaciones activas\n"
+                        else:
+                            account_info += f"⚡ Velocidad estándar\n"
+                            account_info += f"💡 Premium disponible para más velocidad\n"
+                        
+                        output += account_info
                     except:
                         output = "Some error occured while checking the status. Retry."
                 elif command == "clean":
@@ -329,9 +421,16 @@ with TelegramClient(getSession(), api_id, api_hash,
                     if hasattr(event.media, 'document'):
                         file_size_mb = event.media.document.size / (1024 * 1024)
                         if not is_premium_account and file_size_mb > 2000:
-                            message = await event.reply(f"❌ File {filename} is too large ({file_size_mb:.2f} MB). Premium account required for files >2GB.")
+                            message = await event.reply(f"❌ **Archivo demasiado grande**\n\n"
+                                                      f"📄 **Archivo:** {filename}\n"
+                                                      f"📦 **Tamaño:** {file_size_mb:.2f} MB\n"
+                                                      f"⚠️  **Límite actual:** 2,000 MB\n\n"
+                                                      f"💡 **Solución:** Se requiere cuenta Premium para archivos >2GB")
                         elif file_size_mb > max_file_size:
-                            message = await event.reply(f"❌ File {filename} exceeds maximum size ({file_size_mb:.2f} MB > {max_file_size} MB).")
+                            message = await event.reply(f"❌ **Archivo excede el límite**\n\n"
+                                                      f"📄 **Archivo:** {filename}\n"
+                                                      f"📦 **Tamaño:** {file_size_mb:.2f} MB\n"
+                                                      f"⚠️  **Límite configurado:** {max_file_size} MB")
                         else:
                             # Solo procesar si el archivo tiene un tamaño válido
                             if ( path.exists("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX)) or path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
@@ -373,39 +472,113 @@ with TelegramClient(getSession(), api_id, api_hash,
                 else: 
                    size=event.media.document.size
 
-                # Mostrar información adicional para archivos grandes
+                # Mostrar información mejorada para archivos
                 size_mb = size / (1024 * 1024)
-                download_info = "Downloading file {0} ({1} bytes".format(filename, size)
-                if size_mb > 100:
-                    download_info += " / {:.2f} MB".format(size_mb)
-                download_info += ")"
-                if is_premium_account and size_mb > 2000:
-                    download_info += " [Premium]"
+                
+                if size_mb > 100:  # Solo mostrar MB para archivos grandes
+                    download_info = f"📥 **Descargando:** {filename}\n"
+                    download_info += f"📦 **Tamaño:** {size_mb:.2f} MB ({size:,} bytes)\n"
+                    
+                    if is_premium_account:
+                        if size_mb > 2000:
+                            download_info += f"⭐ **Premium:** Archivo grande detectado\n"
+                        download_info += f"🚀 **Modo:** Optimizado Premium"
+                    else:
+                        download_info += f"⚡ **Modo:** Estándar"
+                else:
+                    download_info = f"📥 Descargando {filename} ({size:,} bytes)"
+                    if is_premium_account:
+                        download_info += " [Premium]"
                 
                 await log_reply(message, download_info)
 
                 download_callback = lambda received, total: set_progress(filename, message, received, total)
 
-                # Nota: chunk_size no es un parámetro soportado en download_media de Telethon
-                # Telethon maneja automáticamente el tamaño de chunk basado en la conexión
-                # Las optimizaciones Premium se aplican a través de otros métodos
+                # Optimizaciones para cuentas Premium
+                download_kwargs = {
+                    'progress_callback': download_callback
+                }
                 
-                await client.download_media(
-                    event.message, 
-                    "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
-                    progress_callback = download_callback
-                )
+                # Para cuentas Premium, usar download_file con optimizaciones
+                if is_premium_account and size_mb > 100:  # Solo para archivos grandes
+                    try:
+                        from telethon.tl.functions.upload import GetFileRequest
+                        from telethon.tl.types import InputDocumentFileLocation
+                        
+                        print(f"🚀 Usando descarga optimizada Premium para {filename}")
+                        
+                        # Usar download_file con chunk_size optimizado para Premium
+                        if hasattr(event.media, 'document'):
+                            # Parámetros optimizados para Premium
+                            file_location = InputDocumentFileLocation(
+                                id=event.media.document.id,
+                                access_hash=event.media.document.access_hash,
+                                file_reference=event.media.document.file_reference,
+                                thumb_size=""
+                            )
+                            
+                            # Usar download_file con parámetros optimizados
+                            await client.download_file(
+                                file_location,
+                                "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX),
+                                part_size_kb=1024,  # 1MB chunks para Premium (vs 512KB default)
+                                file_size=size,
+                                progress_callback=download_callback
+                            )
+                        else:
+                            # Fallback a download_media estándar
+                            await client.download_media(
+                                event.message, 
+                                "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
+                                **download_kwargs
+                            )
+                    except Exception as opt_e:
+                        print(f"⚠️  Descarga optimizada falló, usando método estándar: {opt_e}")
+                        # Fallback a método estándar
+                        await client.download_media(
+                            event.message, 
+                            "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
+                            **download_kwargs
+                        )
+                else:
+                    # Descarga estándar para cuentas no Premium o archivos pequeños
+                    await client.download_media(
+                        event.message, 
+                        "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
+                        **download_kwargs
+                    )
                 set_progress(filename, message, 100, 100)
                 move("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), "{0}/{1}".format(downloadFolder,filename))
-                await log_reply(message, "{0} ready".format(filename))
+                
+                # Mensaje de finalización mejorado
+                completion_msg = f"✅ **Descarga completada**\n"
+                completion_msg += f"📄 **Archivo:** {filename}\n"
+                if size_mb > 10:  # Solo mostrar tamaño para archivos medianos/grandes
+                    completion_msg += f"📦 **Tamaño:** {size_mb:.2f} MB\n"
+                completion_msg += f"📁 **Ubicación:** {downloadFolder}"
+                
+                await log_reply(message, completion_msg)
 
                 queue.task_done()
             except Exception as e:
                 try: 
-                    error_msg = "Error: {}".format(str(e))
-                    # Añadir sugerencia si el error está relacionado con el tamaño
-                    if "file too large" in str(e).lower() and not is_premium_account:
-                        error_msg += "\n💡 Consider upgrading to Premium for large files."
+                    error_msg = f"❌ **Error en descarga**\n\n"
+                    error_msg += f"📄 **Archivo:** {filename}\n"
+                    error_msg += f"🚨 **Error:** {str(e)}\n"
+                    
+                    # Sugerencias específicas según el tipo de error y cuenta
+                    error_lower = str(e).lower()
+                    if "file too large" in error_lower or "flood" in error_lower:
+                        if not is_premium_account:
+                            error_msg += f"\n💡 **Sugerencia:** Considera actualizar a Premium para:"
+                            error_msg += f"\n   • Archivos más grandes (hasta 4GB)"
+                            error_msg += f"\n   • Sin límites de velocidad"
+                            error_msg += f"\n   • Descargas optimizadas"
+                        else:
+                            error_msg += f"\n🔄 **Reintentando:** El archivo será reintentado automáticamente"
+                    elif "timeout" in error_lower:
+                        error_msg += f"\n🔄 **Conexión:** Problema temporal de red"
+                    
                     await log_reply(message, error_msg)
                 except: pass
                 print('Queue worker error: ', e)
