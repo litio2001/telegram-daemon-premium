@@ -103,68 +103,88 @@ You can also 'talk' to this daemon using your Telegram client:
 
 `docker pull alfem/telegram-download-daemon`
 
-## 🐳 Quick Docker Setup
+## 🐳 Configuración rápida con Docker
 
-### 1. **Configure Environment Variables**
+### 1. **Configura las variables de entorno**
 
-Edit the `docker-compose.yml` file with your credentials:
+Edita el archivo `docker-compose.yml` con tus credenciales:
 
 ```yaml
 environment:
-  TELEGRAM_DAEMON_API_ID: "your_api_id"
-  TELEGRAM_DAEMON_API_HASH: "your_api_hash"
-  TELEGRAM_DAEMON_CHANNEL: "your_channel_id"
-  # Premium settings (optional)
+  TELEGRAM_DAEMON_API_ID: "tu_api_id"
+  TELEGRAM_DAEMON_API_HASH: "tu_api_hash"
+  TELEGRAM_DAEMON_CHANNEL: "tu_channel_id"
+  # Configuración Premium (opcional)
   TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # MB
 ```
 
-### 2. **First-Time Setup (Interactive)**
+### 2. **Primer inicio (interactivo)**
 
-When we use the [`TelegramClient`](https://docs.telethon.dev/en/latest/quick-references/client-reference.html#telegramclient) method, it requires us to interact with the `Console` to give it our phone number and confirm with a security code.
+**IMPORTANTE:**  
+La **primera vez** que ejecutes el contenedor, debes lanzarlo de forma **interactiva** para que el sistema te solicite tu número de teléfono y puedas introducir el código de seguridad que recibirás en la app de Telegram de tu móvil.
 
-To do this, when using *Docker*, you need to **interactively** run the container for the first time.
+Esto es necesario para autorizar la sesión y vincular tu cuenta de Telegram con el daemon.
 
 ```bash
-# Interactive first-time setup
+# Ejecución interactiva inicial (imprescindible la primera vez)
 docker-compose run --rm telegram-download-daemon
-# Interact with the console to authenticate yourself.
-# You'll see Premium detection information during startup
-# See the message "Signed in successfully as {your name}"
-# Close the container (Ctrl+C)
+# Sigue las instrucciones en pantalla:
+# 1. Introduce tu número de teléfono.
+# 2. Introduce el código de seguridad recibido en tu app de Telegram.
+# 3. Espera a ver el mensaje de bienvenida y la detección de Premium.
+# 4. Cuando veas "Signed in successfully as {tu nombre}", puedes cerrar el contenedor (Ctrl+C).
+```
 
-# Start daemon in background
+Después de este paso, la sesión queda guardada y puedes lanzar el daemon en segundo plano normalmente:
+
+```bash
+# Lanzar el daemon en modo background
 docker-compose up -d
 ```
 
-### ⚠️ **Permission Issues Fix**
+### 3. **Cómo ejecutar el script manualmente**
 
-If you get permission errors like `Permission denied: '/session/DownloadDaemon.session'`:
+Si necesitas ejecutar el script principal directamente dentro del contenedor (por ejemplo, para depuración o pruebas), usa:
 
 ```bash
-# Option 1: Fix volume permissions (Linux/macOS)
+docker-compose exec telegram-download-daemon app telegram-download-daemon.py
+```
+
+O, si el contenedor ya tiene Python en el PATH:
+
+```bash
+docker-compose exec telegram-download-daemon python3 telegram-download-daemon.py
+```
+
+### ⚠️ **Solución de problemas de permisos**
+
+Si obtienes errores de permisos como `Permission denied: '/session/DownloadDaemon.session'`:
+
+```bash
+# Opción 1: Corrige los permisos de los volúmenes (Linux/macOS)
 sudo chown -R 1000:1000 /var/lib/docker/volumes/
 
-# Option 2: Use bind mounts instead of volumes
-# Edit docker-compose.yml and replace:
+# Opción 2: Usa bind mounts en vez de volúmenes
+# Edita docker-compose.yml y reemplaza:
 volumes:
   - downloads:/downloads
   - sessions:/session
-# With:
+# Por:
   - ./downloads:/downloads
   - ./sessions:/session
 
-# Then create directories with correct permissions:
+# Luego crea los directorios con los permisos correctos:
 mkdir -p downloads sessions
 chmod 777 downloads sessions
 ```
 
-### 3. **Monitor and Manage**
+### 4. **Monitorización y gestión**
 
 ```bash
-# Check logs and Premium detection
+# Ver logs y detección de Premium
 docker-compose logs -f telegram-download-daemon
 
-# Restart daemon
+# Reiniciar el daemon
 docker-compose restart telegram-download-daemon
 ```
 
