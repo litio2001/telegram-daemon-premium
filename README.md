@@ -52,7 +52,6 @@ You need to configure these values:
 | `TELEGRAM_DAEMON_DUPLICATES`  | `--duplicates`             | What to do with duplicated files: ignore, overwrite or rename them | rename                     |
 | `TELEGRAM_DAEMON_WORKERS`  | `--workers`             | Number of simultaneous downloads | Equals to processor cores                     |
 | `TELEGRAM_DAEMON_PREMIUM_MAX_SIZE` | (env only) | Maximum file size for Premium accounts (MB) | 4000 |
-| `TELEGRAM_DAEMON_CHUNK_SIZE` | (env only) | Download chunk size for Premium accounts (KB) | 512 |
 
 ## 🔧 Premium Configuration
 
@@ -60,7 +59,6 @@ For Premium accounts, you can configure additional settings:
 
 ```bash
 export TELEGRAM_DAEMON_PREMIUM_MAX_SIZE=4000  # Max file size in MB for Premium (default: 4000)
-export TELEGRAM_DAEMON_CHUNK_SIZE=512         # Chunk size in KB for Premium (default: 512)
 ```
 
 You can define them as Environment Variables, or put them as a command line arguments, for example:
@@ -96,7 +94,6 @@ environment:
   TELEGRAM_DAEMON_CHANNEL: "your_channel_id"
   # Premium settings (optional)
   TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # MB
-  TELEGRAM_DAEMON_CHUNK_SIZE: "512"         # KB
 ```
 
 ### 2. **First-Time Setup (Interactive)**
@@ -164,7 +161,6 @@ environment:
   
   # Premium-specific settings
   TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # Max file size in MB
-  TELEGRAM_DAEMON_CHUNK_SIZE: "512"         # Download chunk size in KB
 ```
 
 See the `sessions` volume in the [docker-compose.yml](docker-compose.yml) file.

@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies globally
-RUN pip install --no-cache-dir telethon cryptg==0.3 pysocks
+RUN pip install --no-cache-dir telethon==1.35.0 cryptg==0.3 pysocks
 
 # Set up application directory
 WORKDIR /app

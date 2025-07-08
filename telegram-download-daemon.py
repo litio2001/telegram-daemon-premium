@@ -45,7 +45,6 @@ TELEGRAM_DAEMON_WORKERS=getenv("TELEGRAM_DAEMON_WORKERS", multiprocessing.cpu_co
 
 # Añadir nuevas variables de entorno para Premium
 TELEGRAM_DAEMON_PREMIUM_MAX_SIZE=getenv("TELEGRAM_DAEMON_PREMIUM_MAX_SIZE", "4000")  # MB
-TELEGRAM_DAEMON_CHUNK_SIZE=getenv("TELEGRAM_DAEMON_CHUNK_SIZE", "512")  # KB
 
 # Variables globales para Premium - DECLARAR AQUÍ
 is_premium_account = False
@@ -182,12 +181,10 @@ async def sendHelloMessage(client, peerChannel):
     if is_premium_account:
         max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
         account_type = "Premium ⭐"
-        chunk_size = int(TELEGRAM_DAEMON_CHUNK_SIZE)
         features = "✅ Large files, ✅ Fast speeds, ✅ Premium features"
     else:
         max_file_size = 2000
         account_type = "Standard"
-        chunk_size = 512
         features = "⚡ Standard speeds, 📁 Basic features"
     
     print(f"")
@@ -195,7 +192,6 @@ async def sendHelloMessage(client, peerChannel):
     print(f"📱 Telethon {__version__}")
     print(f"👤 Account type: {account_type}")
     print(f"📁 Max file size: {max_file_size} MB")
-    print(f"💾 Download chunk: {chunk_size} KB")
     print(f"🔄 Workers: {str(worker_count)}")
     print(f"✨ Features: {features}")
     print(f"")
@@ -390,14 +386,14 @@ with TelegramClient(getSession(), api_id, api_hash,
 
                 download_callback = lambda received, total: set_progress(filename, message, received, total)
 
-                # Configurar chunk_size basado en el tipo de cuenta
-                download_chunk_size = int(TELEGRAM_DAEMON_CHUNK_SIZE) * 1024 if is_premium_account else 512 * 1024
+                # Nota: chunk_size no es un parámetro soportado en download_media de Telethon
+                # Telethon maneja automáticamente el tamaño de chunk basado en la conexión
+                # Las optimizaciones Premium se aplican a través de otros métodos
                 
                 await client.download_media(
                     event.message, 
                     "{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), 
-                    progress_callback = download_callback,
-                    chunk_size = download_chunk_size
+                    progress_callback = download_callback
                 )
                 set_progress(filename, message, 100, 100)
                 move("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX), "{0}/{1}".format(downloadFolder,filename))

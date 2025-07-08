@@ -16,7 +16,6 @@ services:
       #TELEGRAM_DAEMON_WORKERS: 2
       # Premium-specific settings (uncomment and configure as needed)
       TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # Max file size in MB for Premium accounts
-      TELEGRAM_DAEMON_CHUNK_SIZE: "512"         # Download chunk size in KB for Premium accounts
     volumes:
        - downloads:/downloads
        - sessions:/session
