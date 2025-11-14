@@ -1,47 +1,102 @@
-# telegram-download-daemon (Premium Enhanced)
+# telegram-download-daemon v2.0 (Premium Enhanced Edition) 🚀
 
-A Telegram Daemon (not a bot) for file downloading automation with **Premium account support** [for channels of which you have admin privileges](https://github.com/alfem/telegram-download-daemon/issues/48).
+A Telegram Daemon (not a bot) for file downloading automation with **Premium account support** and **enhanced user experience** [for channels of which you have admin privileges](https://github.com/alfem/telegram-download-daemon/issues/48).
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E03K0RP)
 
-## 🚀 New Premium Features
+## ✨ What's New in v2.0
+
+### 🎯 **Enhanced Premium Detection & Notifications**
+- **Visual Premium Status on Startup**: The bot now sends a **detailed message to your Telegram channel** indicating:
+  - ✅ Whether your account is Premium or Standard
+  - 📊 Complete system configuration
+  - ⚡ Active optimizations
+  - 🔧 Technical details (workers, file limits, etc.)
+- **Multiple detection methods** for maximum reliability
+- **Clear visual indicators** in console and Telegram messages
+
+### 📊 **New Statistics & Monitoring**
+- **Real-time download speed** with ETA calculation
+- **Session statistics**:
+  - Total downloads (successful/failed)
+  - Total data downloaded
+  - Average speed
+  - Largest file downloaded
+  - Uptime and success rate
+- **Download progress** now shows:
+  - Current speed (MB/s)
+  - Estimated time remaining (ETA)
+  - Formatted sizes (KB, MB, GB)
+
+### 🎮 **New Interactive Commands**
+- `help` - Show all available commands with descriptions
+- `config` - Display current configuration
+- `stats` - View detailed session statistics
+- `pause` - Pause download queue processing
+- `resume` - Resume download queue processing
+- `status` - Enhanced status with more details
+- `queue` - See files waiting to be downloaded
+- `list` - List downloaded files
+- `clean` - Remove temporary files
+
+### 🔄 **Improved Download Management**
+- **Automatic retry system** (up to 3 attempts)
+- **Smart error handling** with contextual suggestions
+- **File filters** by extension (configure via `TELEGRAM_DAEMON_FILE_FILTER`)
+- **Pause/Resume** functionality for queue management
+- **Better duplicate handling**
+
+### 💬 **Enhanced User Experience**
+- **Beautiful formatted messages** with emojis and clear sections
+- **Detailed progress updates** during downloads
+- **Helpful error messages** with solutions
+- **Premium upgrade suggestions** for standard users when applicable
+
+## 🚀 Premium Features
 
 This enhanced version includes **automatic Premium account detection** and takes advantage of Telegram Premium capabilities:
 
-- **🔍 Automatic Premium Detection**: Detects Premium accounts using multiple robust methods based on official Telegram API documentation
+- **🔍 Automatic Premium Detection**:
+  - Detects Premium accounts using multiple robust methods
+  - **Sends notification to Telegram channel on startup** with your account status
+  - Visual indicators throughout the application
+
 - **📦 Large File Support**: Premium accounts can download files up to 4GB (configurable)
-- **⚡ Optimized Downloads**: 
+
+- **⚡ Optimized Downloads**:
   - Telethon's internal Premium optimizations automatically activated
   - Dynamic worker scaling (up to 12 workers for Premium vs 4 for Standard)
   - Enhanced connection parameters (retry_delay, timeout, connection_retries)
   - No download speed limits (FLOOD_PREMIUM_WAIT_X exemption)
-- **💎 Smart Configuration**: 
+
+- **💎 Smart Configuration**:
   - CPU-based worker scaling (Premium: CPU cores x3, Standard: CPU cores x1)
   - Automatic chunk size optimization handled by Telethon internally
   - Premium-specific client identification for better server treatment
-- **🎯 Intelligent Error Handling**: Context-aware suggestions for Standard users
 
-## Technical Implementation
+- **🎯 Intelligent Error Handling**:
+  - Context-aware suggestions for Standard users
+  - Automatic retry system with exponential backoff
+
+## 📋 Technical Implementation
 
 ### Premium Detection Methods
 1. **Primary**: `client.get_me()` - Most reliable Telethon method
 2. **Backup**: `users.getUsers` with `InputUserSelf` - Official Telegram API
-3. **Fallback**: `users.getFullUser` - Complete user information  
-4. **Verification**: `help.getPremiumPromo` - Cross-validation
+3. **Fallback**: `users.getFullUser` - Complete user information
 
 ### Download Optimizations
 - **Premium accounts**: Benefit from Telethon's internal Premium optimizations
 - **Parallel processing**: Dynamic worker scaling based on account type and CPU cores
-- **Error resilience**: Automatic fallback to standard methods if optimizations fail
+- **Error resilience**: Automatic retry system (3 attempts with increasing delays)
 - **Connection tuning**: Optimized timeouts and retry strategies for large files
+- **Real-time monitoring**: Speed calculation, ETA, and progress tracking
 
 ## Standard Features
 
-If you have got an Internet connected computer or NAS and you want to automate file downloading from Telegram channels, this
-daemon is for you.
+If you have got an Internet connected computer or NAS and you want to automate file downloading from Telegram channels, this daemon is for you.
 
-Telegram bots are limited to 20Mb file size downloads. So I wrote this agent
-or daemon to allow bigger downloads:
+Telegram bots are limited to 20Mb file size downloads. This daemon allows bigger downloads:
 - **Standard accounts**: Limited to 2GB by Telegram APIs
 - **Premium accounts**: Up to 4GB (or custom limit)
 
@@ -57,12 +112,11 @@ Install dependencies by running this command:
 
 Warning: If you get a `File size too large message`, check the version of Telethon library you are using. Old versions have got a 1.5Gb file size limit.
 
-
 Obtain your own api id: https://core.telegram.org/api/obtaining_api_id
 
-# Usage
+# Configuration
 
-You need to configure these values:
+## Environment Variables
 
 | Environment Variable     | Command Line argument | Description                                                  | Default Value       |
 |--------------------------|:-----------------------:|--------------------------------------------------------------|---------------------|
@@ -70,10 +124,11 @@ You need to configure these values:
 | `TELEGRAM_DAEMON_API_HASH` | `--api-hash`            | api_hash from https://core.telegram.org/api/obtaining_api_id |                     |
 | `TELEGRAM_DAEMON_DEST`     | `--dest`                | Destination path for downloaded files                       | `/telegram-downloads` |
 | `TELEGRAM_DAEMON_TEMP`     | `--temp`                | Destination path for temporary (download in progress) files                       | use --dest |
-| `TELEGRAM_DAEMON_CHANNEL`  | `--channel`             | Channel id to download from it (Please, check [Issue 45](https://github.com/alfem/telegram-download-daemon/issues/45), [Issue 48](https://github.com/alfem/telegram-download-daemon/issues/48) and [Issue 73](https://github.com/alfem/telegram-download-daemon/issues/73))                              |                     |
+| `TELEGRAM_DAEMON_CHANNEL`  | `--channel`             | Channel id to download from it                             |                     |
 | `TELEGRAM_DAEMON_DUPLICATES`  | `--duplicates`             | What to do with duplicated files: ignore, overwrite or rename them | rename                     |
 | `TELEGRAM_DAEMON_WORKERS`  | `--workers`             | Number of simultaneous downloads | Equals to processor cores                     |
 | `TELEGRAM_DAEMON_PREMIUM_MAX_SIZE` | (env only) | Maximum file size for Premium accounts (MB) | 4000 |
+| `TELEGRAM_DAEMON_FILE_FILTER` | (env only) | Filter files by extension (comma-separated, e.g., "mp4,mkv,avi") | (no filter) |
 
 ## 🔧 Premium Configuration
 
@@ -81,207 +136,285 @@ For Premium accounts, you can configure additional settings:
 
 ```bash
 export TELEGRAM_DAEMON_PREMIUM_MAX_SIZE=4000  # Max file size in MB for Premium (default: 4000)
+export TELEGRAM_DAEMON_FILE_FILTER="mp4,mkv,avi,mp3"  # Only download these file types
 ```
 
-You can define them as Environment Variables, or put them as a command line arguments, for example:
+## Usage Example
+
+You can define them as Environment Variables, or put them as command line arguments, for example:
 
     python telegram-download-daemon.py --api-id <your-id> --api-hash <your-hash> --channel <channel-number>
 
+# Using the Daemon
 
-Finally, resend any file link to the channel to start the downloading. This daemon can manage many downloads simultaneously.
+## First Run
 
-You can also 'talk' to this daemon using your Telegram client:
+When you start the daemon for the first time:
 
-* Say "list" and get a list of available files in the destination path.
-* Say "status" to the daemon to check the current status.
-* Say "clean" to remove stale (*.tdd) files from temporary directory.
-* Say "queue" to list the pending files waiting to start.
+1. **Authentication**: You'll need to enter your phone number and verification code
+2. **Premium Detection**: The daemon will automatically detect if you have Telegram Premium
+3. **Welcome Message**: You'll receive a **detailed message in your Telegram channel** showing:
+   - Your account type (Premium ⭐ or Standard 📱)
+   - File size limits
+   - Active optimizations
+   - Number of parallel workers
+   - All configuration details
 
+## Downloading Files
 
+Simply **forward or resend any file** to the configured channel and the daemon will:
+1. Add it to the download queue
+2. Show download progress with speed and ETA
+3. Notify you when completed
+4. Store it in the configured download folder
+
+## 📝 Available Commands
+
+Send these commands as text messages to your channel:
+
+### Information Commands
+- **`help`** - Show all available commands with descriptions
+- **`status`** - View active downloads and account information
+- **`config`** - Display current configuration settings
+- **`stats`** - View detailed session statistics (downloads, speed, data transferred)
+
+### Queue Management
+- **`queue`** - See files waiting in the download queue
+- **`pause`** - Pause processing new downloads (current downloads continue)
+- **`resume`** - Resume processing the download queue
+
+### File Management
+- **`list`** - List all downloaded files in the destination folder
+- **`clean`** - Remove temporary (*.tdd) files from temp directory
+
+## Example Workflow
+
+```
+1. Start daemon → Receive welcome message with Premium/Standard status
+2. Forward file to channel → File added to queue notification
+3. Download starts → Progress updates with speed/ETA
+4. Download completes → Completion notification with statistics
+5. Send "stats" → View session statistics
+```
 
 # Docker (Premium Enhanced)
 
 `docker pull alfem/telegram-download-daemon`
 
-## 🐳 Configuración rápida con Docker
+## 🐳 Quick Docker Setup
 
-### 1. **Configura las variables de entorno**
+### 1. **Configure Environment Variables**
 
-Edita el archivo `docker-compose.yml` con tus credenciales:
+Edit the `docker-compose.yml` file with your credentials:
 
 ```yaml
 environment:
-  TELEGRAM_DAEMON_API_ID: "tu_api_id"
-  TELEGRAM_DAEMON_API_HASH: "tu_api_hash"
-  TELEGRAM_DAEMON_CHANNEL: "tu_channel_id"
-  # Configuración Premium (opcional)
+  TELEGRAM_DAEMON_API_ID: "YOUR_API_ID"
+  TELEGRAM_DAEMON_API_HASH: "YOUR_API_HASH"
+  TELEGRAM_DAEMON_CHANNEL: "YOUR_CHANNEL_ID"
+  # Premium configuration (optional)
   TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # MB
+  TELEGRAM_DAEMON_FILE_FILTER: "mp4,mkv,avi"  # Optional: filter by extension
 ```
 
-### 2. **Primer inicio (interactivo)**
+### 2. **First Run (Interactive)**
 
-**IMPORTANTE:**  
-La **primera vez** que ejecutes el contenedor, debes lanzarlo de forma **interactiva** para que el sistema te solicite tu número de teléfono y puedas introducir el código de seguridad que recibirás en la app de Telegram de tu móvil.
-
-Esto es necesario para autorizar la sesión y vincular tu cuenta de Telegram con el daemon.
+**IMPORTANT:**
+The **first time** you run the container, you must launch it **interactively** to enter your phone number and verification code:
 
 ```bash
-# Ejecución interactiva inicial (imprescindible la primera vez)
+# Interactive initial run (required first time)
 docker-compose run --rm telegram-download-daemon
-# Sigue las instrucciones en pantalla:
-# 1. Introduce tu número de teléfono.
-# 2. Introduce el código de seguridad recibido en tu app de Telegram.
-# 3. Espera a ver el mensaje de bienvenida y la detección de Premium.
-# 4. Cuando veas "Signed in successfully as {tu nombre}", puedes cerrar el contenedor (Ctrl+C).
+# Follow the on-screen instructions:
+# 1. Enter your phone number
+# 2. Enter the verification code from Telegram app
+# 3. Wait for the welcome message and Premium detection
+# 4. When you see "Signed in successfully", you can close (Ctrl+C)
 ```
 
-Después de este paso, la sesión queda guardada y puedes lanzar el daemon en segundo plano normalmente:
+After this step, the session is saved and you can run the daemon in background:
 
 ```bash
-# Lanzar el daemon en modo background
+# Launch daemon in background mode
 docker-compose up -d
 ```
 
-### 3. **Cómo ejecutar el script manualmente**
+### 3. **Running the Script Manually**
 
-Si necesitas ejecutar el script principal directamente dentro del contenedor (por ejemplo, para depuración o pruebas), usa:
-
-```bash
-docker-compose exec telegram-download-daemon app telegram-download-daemon.py
-```
-
-O, si el contenedor ya tiene Python en el PATH:
+If you need to run the main script directly inside the container:
 
 ```bash
 docker-compose exec telegram-download-daemon python3 telegram-download-daemon.py
 ```
 
-### ⚠️ **Solución de problemas de permisos**
+### ⚠️ **Permission Issues Solution**
 
-Si obtienes errores de permisos como `Permission denied: '/session/DownloadDaemon.session'`:
+If you get permission errors like `Permission denied: '/session/DownloadDaemon.session'`:
 
 ```bash
-# Opción 1: Corrige los permisos de los volúmenes (Linux/macOS)
+# Option 1: Fix volume permissions (Linux/macOS)
 sudo chown -R 1000:1000 /var/lib/docker/volumes/
 
-# Opción 2: Usa bind mounts en vez de volúmenes
-# Edita docker-compose.yml y reemplaza:
+# Option 2: Use bind mounts instead of volumes
+# Edit docker-compose.yml and replace:
 volumes:
   - downloads:/downloads
   - sessions:/session
-# Por:
+# With:
+volumes:
   - ./downloads:/downloads
   - ./sessions:/session
 
-# Luego crea los directorios con los permisos correctos:
+# Then create directories with correct permissions:
 mkdir -p downloads sessions
 chmod 777 downloads sessions
 ```
 
-### 4. **Monitorización y gestión**
+### 4. **Monitoring and Management**
 
 ```bash
-# Ver logs y detección de Premium
+# View logs and Premium detection
 docker-compose logs -f telegram-download-daemon
 
-# Reiniciar el daemon
+# Restart the daemon
 docker-compose restart telegram-download-daemon
+
+# Stop the daemon
+docker-compose down
 ```
 
-## 🔧 Docker Premium Configuration
+## 🎯 What You'll See on Startup
 
-The `docker-compose.yml` includes Premium-specific environment variables:
-
-```yaml
-environment:
-  # Standard configuration
-  TELEGRAM_DAEMON_API_ID: "YOUR API ID HERE"
-  TELEGRAM_DAEMON_API_HASH: "YOUR API HASH HERE"
-  TELEGRAM_DAEMON_CHANNEL: "YOUR CHANNEL ID HERE"
-  TELEGRAM_DAEMON_DEST: "/downloads"
-  TELEGRAM_DAEMON_SESSION_PATH: "/session"
-  
-  # Premium-specific settings
-  TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # Max file size in MB
-```
-
-See the `sessions` volume in the [docker-compose.yml](docker-compose.yml) file.
-
-## 🔍 Premium Detection Implementation
-
-This enhanced version uses a robust Premium detection system based on the official Telegram API documentation:
-
-### Detection Methods
-
-1. **Direct Attribute Check**: Uses the `premium` attribute from the User object (flags.28)
-2. **Flag Bit Verification**: Manually checks bit 28 in the user flags (as per MTProto schema)
-3. **GetFullUserRequest Fallback**: Alternative method for edge cases
-4. **Debug Information**: Comprehensive logging for troubleshooting
-
-### Premium Benefits
-
-- **File Size Limits**:
-  - Standard: 2GB maximum
-  - Premium: 4GB maximum (configurable up to higher limits)
-- **Download Performance**:
-  - Optimized chunk sizes for Premium accounts
-  - Better handling of large files
-- **Smart Error Handling**:
-  - Premium-specific error messages
-  - Helpful suggestions for Standard users
-
-### Technical Implementation
-
-The implementation follows the official Telegram API schema where Premium accounts have the `premium` flag set to `true` in the User constructor:
+When the daemon starts, you'll receive a message in your Telegram channel like this:
 
 ```
-user#83314fca flags:# ... premium:flags.28?true ... = User;
+==================================================
+🚀 TELEGRAM DOWNLOAD DAEMON
+📦 Versión 2.0-Premium-Enhanced
+==================================================
+
+🔧 INFORMACIÓN DEL SISTEMA
+├─ 📚 Telethon: 1.36.0
+├─ 🐍 Python Asyncio
+├─ 🖥️  CPU Cores: 4
+└─ 📅 Inicio: 2025-01-15 10:30:45
+
+──────────────────────────────────────────────────
+🌟 CUENTA PREMIUM DETECTADA 🌟
+──────────────────────────────────────────────────
+
+👤 ESTADO DE CUENTA
+├─ ⭐ Tipo: Premium
+├─ 📁 Límite de archivo: 4,000 MB
+└─ 🔄 Workers paralelos: 12
+
+✨ CARACTERÍSTICAS ACTIVAS
+✅ Archivos hasta 4GB
+✅ Sin límites de velocidad
+✅ Descarga optimizada
+✅ Prioridad en servidores
+✅ Workers paralelos mejorados
+
+🎯 OPTIMIZACIONES PREMIUM
+⚡ Sin límites FLOOD_WAIT
+📦 Chunks de 1MB para grandes archivos
+🚀 Paralelismo x3 mejorado
+💎 Prioridad en servidores Telegram
+
+⚙️  CONFIGURACIÓN
+├─ 📂 Destino: /downloads
+├─ 🔄 Duplicados: rename
+└─ 💾 Temporal: /downloads
+
+📝 COMANDOS DISPONIBLES
+└─ Escribe help para ver todos los comandos
+
+==================================================
+✅ SISTEMA LISTO PARA DESCARGAS
+==================================================
 ```
 
-This ensures compatibility with the latest Telegram API and reliable Premium detection.
+# 📊 Feature Comparison
 
-## 📝 Changelog
+| Feature | Standard Account | Premium Account |
+|---------|-----------------|-----------------|
+| Max File Size | 2 GB | 4 GB (configurable) |
+| Download Speed | Limited (FLOOD_WAIT) | Unlimited |
+| Parallel Workers | CPU cores x1 | CPU cores x3 (max 12) |
+| Chunk Size | Standard | Optimized (1MB) |
+| Server Priority | Normal | Premium priority |
+| Retry System | ✅ 3 attempts | ✅ 3 attempts |
+| Real-time Speed | ✅ Yes | ✅ Yes |
+| Statistics | ✅ Yes | ✅ Yes |
+| File Filters | ✅ Yes | ✅ Yes |
+| Pause/Resume | ✅ Yes | ✅ Yes |
 
-### v1.17-Premium (Latest) - Correcciones Críticas
-- 🔧 **Corrección de detección Premium:**
-  - Simplificado método `check_premium_status` eliminando imports problemáticos
-  - Priorizado `client.get_me()` como método principal (más confiable)
-  - Conservados métodos de respaldo API oficial con mejor manejo de errores
-  - Mejorado logging para debugging de estado Premium
-- ⚡ **Optimizaciones de descarga corregidas:**
-  - Eliminado uso problemático de `download_file` con parámetros incorrectos  
-  - Optimizado `download_media` para aprovechar optimizaciones internas de Telethon Premium
-  - Mejorado manejo de chunks automático basado en tipo de cuenta
-  - Workers escalados dinámicamente hasta 12 para cuentas Premium
-- 🚀 **Configuración de cliente mejorada:**
-  - Añadidos parámetros de conexión optimizados (retry_delay, timeout, connection_retries)
-  - Identificación específica como "TDD Premium" para mejor rendimiento
-  - Configuración automática de paralelismo según CPU cores
-- 💡 **UX/UI mejorada:**
-  - Mensajes de bienvenida más informativos y claros
-  - Estado detallado de optimizaciones Premium activas
-  - Información técnica precisa sobre configuración aplicada
+# 📝 Changelog
 
-### v1.16-Premium
-- 🚀 **Mejoras importantes en detección Premium:**
-  - Implementados múltiples métodos de detección basados en API oficial
-  - Uso de `users.getUsers` con `InputUserSelf` (método recomendado)
-  - Fallback con `users.getFullUser` para máxima compatibilidad
-  - Verificación cruzada con `help.getPremiumPromo`
-- ⚡ **Optimizaciones de velocidad para Premium:**
-  - Chunks de 1MB para cuentas Premium (vs 512KB estándar)
-  - Workers dinámicos aumentados automáticamente
-  - Uso de `download_file` optimizado para archivos grandes
-- 💎 **Interfaz mejorada:**
-  - Mensajes informativos mejorados
-  - Estado detallado de cuenta Premium
-  - Información de descarga más clara
-  - Sugerencias inteligentes para usuarios estándar
+## v2.0-Premium-Enhanced (Latest) 🎉
 
-### v1.15-Premium
+### 🌟 Major New Features
+- **✨ Visual Premium Status Notification**: Clear message sent to Telegram channel on startup indicating Premium/Standard status
+- **📊 Real-time Statistics**: Complete session stats with downloads, speed, data transferred
+- **🎮 Interactive Commands**: 9 new commands (help, config, stats, pause, resume, and more)
+- **⚡ Speed Monitoring**: Real-time download speed with ETA calculation
+- **🔄 Auto-retry System**: Automatic retry up to 3 times with exponential backoff
+- **🎯 File Filters**: Filter downloads by file extension
+
+### 💬 Enhanced User Experience
+- **Beautiful formatted messages** with clear sections and emojis
+- **Detailed progress updates** showing speed, ETA, and formatted sizes
+- **Contextual error messages** with helpful solutions
+- **Premium upgrade suggestions** for standard users
+- **Helper functions** for formatting bytes, speed, and time
+
+### 🔧 Technical Improvements
+- Better code organization with utility functions
+- Enhanced statistics tracking (speeds, largest file, success rate)
+- Improved error handling with specific suggestions
+- Queue pause/resume functionality
+- Session uptime tracking
+
+### 🐛 Bug Fixes
+- Fixed global variable declarations
+- Improved download progress tracking
+- Better handling of temporary files
+- Enhanced duplicate file detection
+
+## v1.17-Premium
+- 🔧 Fixed Premium detection with simplified method
+- ⚡ Corrected download optimizations
+- 🚀 Improved client configuration
+- 💡 Enhanced UX/UI with better messages
+
+## v1.16-Premium
+- 🚀 Multiple Premium detection methods
+- ⚡ Speed optimizations for Premium
+- 💎 Improved interface
+
+## v1.15-Premium
 - ✅ Added automatic Premium account detection
-- ✅ Implemented multiple detection methods for reliability
 - ✅ Enhanced file size limits for Premium accounts
-- ✅ Optimized download performance for Premium users
-- ✅ Added comprehensive debug logging
-- ✅ Improved error handling and user feedback
+- ✅ Improved error handling
+
+# 🤝 Contributing
+
+Feel free to submit issues, fork the repository, and create pull requests for any improvements.
+
+# 📄 License
+
+This project maintains the same license as the original telegram-download-daemon.
+
+# ⭐ Support
+
+If you find this project useful, consider:
+- Starring the repository
+- Supporting the original author: [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E03K0RP)
+- Sharing with others who might benefit
+
+# 🔗 Links
+
+- **Original Project**: [telegram-download-daemon](https://github.com/alfem/telegram-download-daemon)
+- **Telegram API Documentation**: https://core.telegram.org/api
+- **Telethon Documentation**: https://docs.telethon.dev/
+- **Telegram Premium**: https://telegram.org/premium

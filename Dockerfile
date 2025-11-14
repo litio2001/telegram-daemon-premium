@@ -1,4 +1,4 @@
-# Telegram Download Daemon Premium - Dockerfile
+# Telegram Download Daemon v2.0 Premium Enhanced - Dockerfile
 # Single-stage build for better compatibility with user mapping
 
 FROM python:3.10.5-slim
@@ -29,9 +29,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python3 -c "import telethon; print('OK')"
 
 # Labels for metadata
-LABEL maintainer="Telegram Download Daemon Premium" \
-      version="1.17" \
-      description="Premium-enhanced Telegram Download Daemon with auto-detection" \
-      telegram-download-daemon="true"
+LABEL maintainer="Telegram Download Daemon v2.0 Premium Enhanced" \
+      version="2.0" \
+      description="Premium-enhanced Telegram Download Daemon with stats, real-time speed, and interactive commands" \
+      telegram-download-daemon="true" \
+      features="premium-detection,statistics,real-time-speed,auto-retry,file-filters,pause-resume"
 
 CMD [ "python3", "./telegram-download-daemon.py" ]
