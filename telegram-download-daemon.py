@@ -14,7 +14,8 @@ import string
 import os.path
 from mimetypes import guess_extension
 from datetime import datetime
-from collections import defaultdict
+from collections import defaultdict, deque
+import glob
 
 from sessionManager import getSession, saveSession
 
@@ -30,7 +31,13 @@ import argparse
 import asyncio
 
 
-TDD_VERSION="2.0-Premium-Enhanced"  # Nueva versión con mejoras significativas
+TDD_VERSION="2.0.0-premium-enhanced"  # Nueva versión con mejoras significativas (semver)
+
+# Constantes de configuración
+SPEED_SAMPLES_FOR_AVERAGE = 10  # Número de muestras de velocidad para calcular promedio
+MAX_DOWNLOAD_SPEEDS = 1000  # Máximo de velocidades almacenadas para evitar consumo excesivo de memoria
+MAX_RETRIES = 3  # Número máximo de reintentos para descargas fallidas
+RETRY_DELAY_BASE = 5  # Segundos base para cálculo de delay entre reintentos (linear backoff)
 
 TELEGRAM_DAEMON_API_ID = getenv("TELEGRAM_DAEMON_API_ID")
 TELEGRAM_DAEMON_API_HASH = getenv("TELEGRAM_DAEMON_API_HASH")
@@ -55,7 +62,6 @@ TELEGRAM_DAEMON_FILE_FILTER=getenv("TELEGRAM_DAEMON_FILE_FILTER", "")  # ej: "mp
 # Variables globales
 is_premium_account = False
 max_file_size = 2000  # MB por defecto
-download_paused = False
 
 # Estadísticas globales
 stats = {
@@ -65,8 +71,13 @@ stats = {
     'total_bytes': 0,
     'session_start': datetime.now(),
     'largest_file': {'name': '', 'size': 0},
-    'download_speeds': []
+    'download_speeds': deque(maxlen=MAX_DOWNLOAD_SPEEDS)  # Usar deque con límite para evitar consumo excesivo de memoria
 }
+
+# Locks y eventos para sincronización entre workers
+stats_lock = None  # Se inicializará en start() con asyncio.Lock()
+progress_lock = None  # Se inicializará en start() con asyncio.Lock()
+download_pause_event = None  # Se inicializará en start() con asyncio.Event()
 
 parser = argparse.ArgumentParser(
     description="Script to download files from a Telegram Channel.")
@@ -416,7 +427,10 @@ def is_file_allowed(filename):
         return True
 
     allowed_extensions = [ext.strip().lower() for ext in TELEGRAM_DAEMON_FILE_FILTER.split(',')]
-    file_extension = filename.split('.')[-1].lower() if '.' in filename else ''
+
+    # Usar os.path.splitext para extraer extensión de forma robusta
+    _, file_extension = os.path.splitext(filename)
+    file_extension = file_extension.lstrip('.').lower() if file_extension else ''
 
     return file_extension in allowed_extensions
 
@@ -424,43 +438,46 @@ in_progress={}
 download_start_times = {}
 
 async def set_progress(filename, message, received, total):
-    """Actualiza el progreso de descarga con velocidad"""
+    """Actualiza el progreso de descarga con velocidad (thread-safe)"""
     global lastUpdate
     global updateFrequency
 
-    if received >= total:
-        try:
-            in_progress.pop(filename)
-            download_start_times.pop(filename, None)
-        except: pass
-        return
+    async with progress_lock:
+        if received >= total:
+            try:
+                in_progress.pop(filename)
+                download_start_times.pop(filename, None)
+            except Exception:
+                pass
+            return
 
-    percentage = math.trunc(received / total * 10000) / 100
+        percentage = math.trunc(received / total * 10000) / 100
 
-    # Calcular velocidad de descarga
-    current_time = time.time()
-    start_time = download_start_times.get(filename, current_time)
-    elapsed_time = current_time - start_time
+        # Calcular velocidad de descarga
+        current_time = time.time()
+        start_time = download_start_times.get(filename, current_time)
+        elapsed_time = current_time - start_time
 
-    if elapsed_time > 0:
-        speed = received / elapsed_time
-        eta_seconds = (total - received) / speed if speed > 0 else 0
+        if elapsed_time > 0:
+            speed = received / elapsed_time
+            eta_seconds = (total - received) / speed if speed > 0 else 0
 
-        progress_message = f"📥 {percentage:.1f}% ({format_bytes(received)} / {format_bytes(total)})\n"
-        progress_message += f"⚡ Velocidad: {format_speed(speed)}\n"
-        progress_message += f"⏱️ ETA: {format_time(eta_seconds)}"
+            progress_message = f"📥 {percentage:.1f}% ({format_bytes(received)} / {format_bytes(total)})\n"
+            progress_message += f"⚡ Velocidad: {format_speed(speed)}\n"
+            progress_message += f"⏱️ ETA: {format_time(eta_seconds)}"
 
-        # Guardar velocidad para estadísticas
-        if speed > 0:
-            stats['download_speeds'].append(speed)
-    else:
-        progress_message = f"{percentage:.1f}% ({format_bytes(received)} / {format_bytes(total)})"
+            # Guardar velocidad para estadísticas (con lock)
+            if speed > 0:
+                async with stats_lock:
+                    stats['download_speeds'].append(speed)
+        else:
+            progress_message = f"{percentage:.1f}% ({format_bytes(received)} / {format_bytes(total)})"
 
-    in_progress[filename] = progress_message
+        in_progress[filename] = progress_message
 
-    if (current_time - lastUpdate) > updateFrequency:
-        await log_reply(message, progress_message)
-        lastUpdate=current_time
+        if (current_time - lastUpdate) > updateFrequency:
+            await log_reply(message, progress_message)
+            lastUpdate=current_time
 
 
 with TelegramClient(getSession(), api_id, api_hash,
@@ -532,7 +549,9 @@ with TelegramClient(getSession(), api_id, api_hash,
 
                 elif command == "stats":
                     uptime = datetime.now() - stats['session_start']
-                    avg_speed = sum(stats['download_speeds'][-10:]) / len(stats['download_speeds'][-10:]) if stats['download_speeds'] else 0
+                    # Usar constante para número de muestras de velocidad
+                    recent_speeds = list(stats['download_speeds'])[-SPEED_SAMPLES_FOR_AVERAGE:]
+                    avg_speed = sum(recent_speeds) / len(recent_speeds) if recent_speeds else 0
 
                     output = "📊 **ESTADÍSTICAS DE SESIÓN**\n\n"
                     output += f"⏱️ **Tiempo activo:** {format_time(uptime.total_seconds())}\n"
@@ -555,8 +574,10 @@ with TelegramClient(getSession(), api_id, api_hash,
                         output += f"    • {format_bytes(stats['largest_file']['size'])}\n"
 
                 elif command == "list":
-                    output = subprocess.run(["ls -lh "+downloadFolder], shell=True, stdout=subprocess.PIPE,stderr=subprocess.STDOUT).stdout.decode('utf-8')
-                    if output:
+                    # Seguridad: no usar shell=True
+                    result = subprocess.run(["ls", "-lh", downloadFolder], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    output = result.stdout.decode('utf-8')
+                    if output and output.strip():
                         output = f"📁 **Archivos descargados:**\n\n```\n{output}\n```"
                     else:
                         output = "📁 La carpeta de descargas está vacía"
@@ -587,28 +608,38 @@ with TelegramClient(getSession(), api_id, api_hash,
                         output = f"❌ Error al verificar estado: {str(e)}"
 
                 elif command == "pause":
-                    global download_paused
-                    download_paused = True
+                    # Usar Event para sincronización thread-safe
+                    download_pause_event.clear()
                     output = "⏸️ **Descargas pausadas**\n\n"
                     output += "Las descargas actuales continuarán, pero no se procesarán nuevos archivos de la cola.\n\n"
                     output += "Escribe `resume` para reanudar."
 
                 elif command == "resume":
-                    download_paused = False
+                    # Usar Event para sincronización thread-safe
+                    download_pause_event.set()
                     output = "▶️ **Descargas reanudadas**\n\n"
                     output += "El procesamiento de la cola se ha reactivado."
 
                 elif command == "clean":
                     output = "🧹 **Limpiando archivos temporales...**\n\n"
                     output += f"📂 Carpeta: `{tempFolder}`\n\n"
-                    result = subprocess.run(
-                        "rm " + tempFolder + "/*." + TELEGRAM_DAEMON_TEMP_SUFFIX,
-                        shell=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                    ).stdout.decode("utf-8")
-                    output += f"```\n{result if result else 'Sin archivos temporales para eliminar'}\n```\n"
-                    output += "✅ Limpieza completada"
+
+                    # Seguridad: usar glob en lugar de shell=True
+                    import os
+                    temp_files = glob.glob(os.path.join(tempFolder, f"*.{TELEGRAM_DAEMON_TEMP_SUFFIX}"))
+                    removed_count = 0
+
+                    for temp_file in temp_files:
+                        try:
+                            os.remove(temp_file)
+                            removed_count += 1
+                        except Exception as e:
+                            print(f"Error removing {temp_file}: {e}")
+
+                    if removed_count > 0:
+                        output += f"✅ **{removed_count} archivo(s) temporal(es) eliminado(s)**"
+                    else:
+                        output += "ℹ️ **Sin archivos temporales para eliminar**"
 
                 elif command == "queue":
                     try:
@@ -675,7 +706,6 @@ with TelegramClient(getSession(), api_id, api_hash,
                              path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
                             message=await event.reply(f"⏭️ **{filename}** ya existe. Ignorando.")
                         else:
-                            stats['total_downloads'] += 1
                             queue_size = queue.qsize()
 
                             message_text = f"✅ **Añadido a la cola**\n\n"
@@ -693,7 +723,6 @@ with TelegramClient(getSession(), api_id, api_hash,
                              path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
                             message=await event.reply(f"⏭️ **{filename}** ya existe. Ignorando.")
                         else:
-                            stats['total_downloads'] += 1
                             message=await event.reply(f"✅ **{filename}** añadido a la cola")
                             await queue.put([event, message])
                 else:
@@ -703,12 +732,11 @@ with TelegramClient(getSession(), api_id, api_hash,
                 print('Events handler error: ', e)
 
     async def worker():
-        """Worker mejorado con reintentos y mejor manejo de errores"""
+        """Worker mejorado con reintentos y mejor manejo de errores (thread-safe)"""
         while True:
             try:
-                # Verificar si está pausado
-                while download_paused:
-                    await asyncio.sleep(5)
+                # Esperar si está pausado (thread-safe usando Event)
+                await download_pause_event.wait()
 
                 element = await queue.get()
                 event=element[0]
@@ -730,6 +758,10 @@ with TelegramClient(getSession(), api_id, api_hash,
 
                 size_mb = size / (1024 * 1024)
 
+                # Incrementar contador total de descargas (thread-safe)
+                async with stats_lock:
+                    stats['total_downloads'] += 1
+
                 # Mensaje de inicio de descarga mejorado
                 download_info = f"🚀 **INICIANDO DESCARGA**\n\n"
                 download_info += f"📄 **Archivo:** {filename}\n"
@@ -750,12 +782,11 @@ with TelegramClient(getSession(), api_id, api_hash,
 
                 download_callback = lambda received, total: set_progress(filename, message, received, total)
 
-                # Intentar descarga con reintentos
-                max_retries = 3
+                # Intentar descarga con reintentos (usa constantes MAX_RETRIES y RETRY_DELAY_BASE)
                 retry_count = 0
                 download_success = False
 
-                while retry_count < max_retries and not download_success:
+                while retry_count < MAX_RETRIES and not download_success:
                     try:
                         if is_premium_account and size_mb > 50:
                             # Descarga optimizada Premium
@@ -779,10 +810,11 @@ with TelegramClient(getSession(), api_id, api_hash,
                         retry_count += 1
                         error_msg = str(download_error)
 
-                        if retry_count < max_retries:
-                            wait_time = retry_count * 5
+                        if retry_count < MAX_RETRIES:
+                            # Linear backoff: espera aumenta linealmente (5s, 10s, 15s)
+                            wait_time = retry_count * RETRY_DELAY_BASE
                             await log_reply(message,
-                                f"⚠️ **Reintento {retry_count}/{max_retries}**\n\n"
+                                f"⚠️ **Reintento {retry_count}/{MAX_RETRIES}**\n\n"
                                 f"Error: {error_msg}\n"
                                 f"Esperando {wait_time}s...")
                             await asyncio.sleep(wait_time)
@@ -794,12 +826,13 @@ with TelegramClient(getSession(), api_id, api_hash,
                 move("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX),
                      "{0}/{1}".format(downloadFolder,filename))
 
-                # Actualizar estadísticas
-                stats['successful_downloads'] += 1
-                stats['total_bytes'] += size
+                # Actualizar estadísticas (thread-safe)
+                async with stats_lock:
+                    stats['successful_downloads'] += 1
+                    stats['total_bytes'] += size
 
-                if size > stats['largest_file']['size']:
-                    stats['largest_file'] = {'name': filename, 'size': size}
+                    if size > stats['largest_file']['size']:
+                        stats['largest_file'] = {'name': filename, 'size': size}
 
                 # Calcular tiempo y velocidad
                 download_time = time.time() - download_start_times.get(filename, time.time())
@@ -827,13 +860,15 @@ with TelegramClient(getSession(), api_id, api_hash,
                 queue.task_done()
 
             except Exception as e:
-                stats['failed_downloads'] += 1
+                # Actualizar estadísticas de fallos (thread-safe)
+                async with stats_lock:
+                    stats['failed_downloads'] += 1
 
                 try:
                     error_msg = f"❌ **ERROR EN DESCARGA**\n\n"
                     error_msg += f"📄 **Archivo:** {filename}\n"
                     error_msg += f"🚨 **Error:** {str(e)}\n"
-                    error_msg += f"🔄 **Reintentos agotados:** {max_retries}\n\n"
+                    error_msg += f"🔄 **Reintentos agotados:** {MAX_RETRIES}\n\n"
 
                     # Sugerencias específicas
                     error_lower = str(e).lower()
@@ -852,14 +887,22 @@ with TelegramClient(getSession(), api_id, api_hash,
                         error_msg += f"Verifica tu conexión a internet."
 
                     await log_reply(message, error_msg)
-                except:
-                    pass
+                except Exception as log_exc:
+                    print(f'Error logging message: {log_exc}')
 
                 print(f'Queue worker error: {e}')
                 queue.task_done()
 
     async def start():
         """Inicio del daemon"""
+        global stats_lock, progress_lock, download_pause_event
+
+        # Inicializar locks y events para sincronización thread-safe
+        stats_lock = asyncio.Lock()
+        progress_lock = asyncio.Lock()
+        download_pause_event = asyncio.Event()
+        download_pause_event.set()  # Inicialmente no pausado
+
         tasks = []
         loop = asyncio.get_event_loop()
 

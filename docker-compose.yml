@@ -17,7 +17,7 @@ services:
       # Premium-specific settings (uncomment and configure as needed)
       TELEGRAM_DAEMON_PREMIUM_MAX_SIZE: "4000"  # Max file size in MB for Premium accounts
       # File filter (optional) - only download specific file types
-      #TELEGRAM_DAEMON_FILE_FILTER: "mp4,mkv,avi,mp3"  # Comma-separated extensions
+      #TELEGRAM_DAEMON_FILE_FILTER: "mp4,mkv,avi,mp3"  # Comma-separated extensions (no dots, case-insensitive)
     volumes:
        - downloads:/downloads
        - sessions:/session

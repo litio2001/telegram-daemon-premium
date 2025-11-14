@@ -197,6 +197,45 @@ Send these commands as text messages to your channel:
 5. Send "stats" → View session statistics
 ```
 
+## 🚑 Troubleshooting
+
+### Welcome Message Not Received
+
+If you do **not** receive the detailed welcome message in your Telegram channel after starting the daemon:
+
+1. **Verify Channel ID**
+   - Double-check that you provided the correct channel ID (should be a negative number, e.g., `-1001234567890`)
+   - You can obtain the channel ID by forwarding a message from your channel to [@userinfobot](https://t.me/userinfobot)
+
+2. **Check Permissions**
+   - Ensure the account running the daemon is an **admin** in the channel
+   - The account must have permission to **post messages** in the channel
+
+3. **Manually Trigger Welcome Message**
+   - Restart the daemon to trigger the welcome message again
+   - Send `status` as a message in the channel to verify the daemon is responding
+
+4. **Check Logs**
+   - Review the daemon's console output for any errors or warnings related to channel access or message sending
+   - Look for connection errors or authentication issues
+
+### File Filter Not Working
+
+If file filters (`TELEGRAM_DAEMON_FILE_FILTER`) are not working:
+
+- Ensure extensions are provided **without dots** (e.g., `mp4,mkv,avi` not `.mp4,.mkv,.avi`)
+- Extensions are case-insensitive
+- Restart the daemon after changing the filter configuration
+
+### Downloads Not Starting
+
+If downloads are added to queue but don't start:
+
+- Check if the queue is paused (send `status` command to verify)
+- Send `resume` if downloads are paused
+- Verify you have sufficient disk space in the download directory
+- Check console logs for error messages
+
 # Docker (Premium Enhanced)
 
 `docker pull alfem/telegram-download-daemon`
@@ -351,7 +390,35 @@ When the daemon starts, you'll receive a message in your Telegram channel like t
 
 # 📝 Changelog
 
-## v2.0-Premium-Enhanced (Latest) 🎉
+## v2.0.1-premium-enhanced (Latest) 🛡️
+
+### 🔒 Security & Thread-Safety Improvements
+- **Thread-safe operations**: Added `asyncio.Lock()` for all shared data structures (stats, progress tracking)
+- **Event-based pause/resume**: Replaced global variable with `asyncio.Event()` for proper synchronization
+- **Eliminated shell injection risks**: Removed `shell=True` from all subprocess calls
+  - `list` command: Now uses `subprocess.run(["ls", "-lh", downloadFolder])`
+  - `clean` command: Uses `glob` and `os.remove()` instead of shell commands
+
+### 🐛 Bug Fixes
+- **Fixed file extension parsing**: Now uses `os.path.splitext()` for robust extension extraction
+- **Corrected statistics counting**: Moved `total_downloads` increment to worker (when download starts, not when queued)
+- **Better exception handling**: Replaced bare `except:` with `except Exception:` throughout codebase
+- **Memory optimization**: Limited `download_speeds` to 1000 entries using `deque(maxlen=1000)`
+
+### 📏 Code Quality Improvements
+- **Semantic versioning**: Updated version format to `2.0.1-premium-enhanced` (semver compliant)
+- **Named constants**: Defined constants for magic numbers:
+  - `SPEED_SAMPLES_FOR_AVERAGE = 10`
+  - `MAX_DOWNLOAD_SPEEDS = 1000`
+  - `MAX_RETRIES = 3`
+  - `RETRY_DELAY_BASE = 5`
+- **Linear backoff clarification**: Added comment explaining retry delay is linear (5s, 10s, 15s), not exponential
+
+### 📚 Documentation
+- **Troubleshooting section**: Added comprehensive troubleshooting guide for common issues
+- **File filter clarification**: Documented that extensions should be without dots (e.g., `mp4` not `.mp4`)
+
+## v2.0.0-premium-enhanced 🎉
 
 ### 🌟 Major New Features
 - **✨ Visual Premium Status Notification**: Clear message sent to Telegram channel on startup indicating Premium/Standard status
