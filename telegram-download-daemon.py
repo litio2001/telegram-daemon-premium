@@ -286,7 +286,7 @@ async def check_premium_status(client):
     return False
 
 async def sendHelloMessage(client, peerChannel):
-    """Envía mensaje de bienvenida con información detallada del estado"""
+    """Sends welcome message with detailed status information"""
     global is_premium_account, max_file_size
 
     entity = await client.get_entity(peerChannel)
@@ -295,98 +295,98 @@ async def sendHelloMessage(client, peerChannel):
     print("TELEGRAM DOWNLOAD DAEMON - ENHANCED PREMIUM EDITION")
     print("🚀 " * 20 + "\n")
 
-    # Verificar estado Premium
+    # Check Premium status
     is_premium_account = await check_premium_status(client)
 
-    # Configurar parámetros según tipo de cuenta
+    # Configure parameters according to account type
     if is_premium_account:
         max_file_size = int(TELEGRAM_DAEMON_PREMIUM_MAX_SIZE)
         account_emoji = "⭐"
         account_type = "Premium"
         features_list = [
-            "✅ Archivos hasta 4GB",
-            "✅ Sin límites de velocidad",
-            "✅ Descarga optimizada",
-            "✅ Prioridad en servidores",
-            "✅ Workers paralelos mejorados"
+            "✅ Files up to 4GB",
+            "✅ No speed limits",
+            "✅ Optimized downloads",
+            "✅ Server priority",
+            "✅ Enhanced parallel workers"
         ]
     else:
         max_file_size = 2000
         account_emoji = "📱"
-        account_type = "Estándar"
+        account_type = "Standard"
         features_list = [
-            "⚡ Velocidad estándar",
-            "📁 Archivos hasta 2GB",
-            "🔄 Funcionalidad completa"
+            "⚡ Standard speed",
+            "📁 Files up to 2GB",
+            "🔄 Full functionality"
         ]
 
-    # Aplicar configuraciones
+    # Apply configurations
     configure_client_for_premium(is_premium_account)
 
-    # Construir mensaje de bienvenida detallado
+    # Build detailed welcome message
     hello_msg = f"{'='*50}\n"
     hello_msg += f"🚀 **TELEGRAM DOWNLOAD DAEMON**\n"
-    hello_msg += f"📦 **Versión {TDD_VERSION}**\n"
+    hello_msg += f"📦 **Version {TDD_VERSION}**\n"
     hello_msg += f"{'='*50}\n\n"
 
-    # Información del sistema
-    hello_msg += f"🔧 **INFORMACIÓN DEL SISTEMA**\n"
+    # System information
+    hello_msg += f"🔧 **SYSTEM INFORMATION**\n"
     hello_msg += f"├─ 📚 Telethon: `{__version__}`\n"
     hello_msg += f"├─ 🐍 Python Asyncio\n"
     hello_msg += f"├─ 🖥️  CPU Cores: `{multiprocessing.cpu_count()}`\n"
-    hello_msg += f"└─ 📅 Inicio: `{stats['session_start'].strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
+    hello_msg += f"└─ 📅 Started: `{stats['session_start'].strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
 
-    # Estado de la cuenta - DESTACADO
+    # Account status - HIGHLIGHTED
     hello_msg += f"{'─'*50}\n"
     if is_premium_account:
-        hello_msg += f"🌟 **CUENTA PREMIUM DETECTADA** 🌟\n"
+        hello_msg += f"🌟 **PREMIUM ACCOUNT DETECTED** 🌟\n"
     else:
-        hello_msg += f"📱 **CUENTA ESTÁNDAR DETECTADA**\n"
+        hello_msg += f"📱 **STANDARD ACCOUNT DETECTED**\n"
     hello_msg += f"{'─'*50}\n\n"
 
-    hello_msg += f"👤 **ESTADO DE CUENTA**\n"
-    hello_msg += f"├─ {account_emoji} Tipo: **{account_type}**\n"
-    hello_msg += f"├─ 📁 Límite de archivo: **{max_file_size:,} MB**\n"
-    hello_msg += f"└─ 🔄 Workers paralelos: **{worker_count}**\n\n"
+    hello_msg += f"👤 **ACCOUNT STATUS**\n"
+    hello_msg += f"├─ {account_emoji} Type: **{account_type}**\n"
+    hello_msg += f"├─ 📁 File limit: **{max_file_size:,} MB**\n"
+    hello_msg += f"└─ 🔄 Parallel workers: **{worker_count}**\n\n"
 
-    # Características disponibles
-    hello_msg += f"✨ **CARACTERÍSTICAS ACTIVAS**\n"
+    # Available features
+    hello_msg += f"✨ **ACTIVE FEATURES**\n"
     for feature in features_list:
         hello_msg += f"{feature}\n"
     hello_msg += "\n"
 
-    # Optimizaciones Premium (si aplica)
+    # Premium optimizations (if applicable)
     if is_premium_account:
-        hello_msg += f"🎯 **OPTIMIZACIONES PREMIUM**\n"
-        hello_msg += f"⚡ Sin límites FLOOD_WAIT\n"
-        hello_msg += f"📦 Chunks de 1MB para grandes archivos\n"
-        hello_msg += f"🚀 Paralelismo x3 mejorado\n"
-        hello_msg += f"💎 Prioridad en servidores Telegram\n\n"
+        hello_msg += f"🎯 **PREMIUM OPTIMIZATIONS**\n"
+        hello_msg += f"⚡ No FLOOD_WAIT limits\n"
+        hello_msg += f"📦 1MB chunks for large files\n"
+        hello_msg += f"🚀 3x improved parallelism\n"
+        hello_msg += f"💎 Priority on Telegram servers\n\n"
 
-    # Configuración de descarga
-    hello_msg += f"⚙️  **CONFIGURACIÓN**\n"
-    hello_msg += f"├─ 📂 Destino: `{downloadFolder}`\n"
-    hello_msg += f"├─ 🔄 Duplicados: `{duplicates}`\n"
+    # Download configuration
+    hello_msg += f"⚙️  **CONFIGURATION**\n"
+    hello_msg += f"├─ 📂 Destination: `{downloadFolder}`\n"
+    hello_msg += f"├─ 🔄 Duplicates: `{duplicates}`\n"
     if TELEGRAM_DAEMON_FILE_FILTER:
-        hello_msg += f"├─ 🎯 Filtros: `{TELEGRAM_DAEMON_FILE_FILTER}`\n"
-    hello_msg += f"└─ 💾 Temporal: `{tempFolder}`\n\n"
+        hello_msg += f"├─ 🎯 Filters: `{TELEGRAM_DAEMON_FILE_FILTER}`\n"
+    hello_msg += f"└─ 💾 Temporary: `{tempFolder}`\n\n"
 
-    # Comandos disponibles
-    hello_msg += f"📝 **COMANDOS DISPONIBLES**\n"
-    hello_msg += f"└─ Escribe `help` para ver todos los comandos\n\n"
+    # Available commands
+    hello_msg += f"📝 **AVAILABLE COMMANDS**\n"
+    hello_msg += f"└─ Type `help` to see all commands\n\n"
 
     hello_msg += f"{'='*50}\n"
-    hello_msg += f"✅ **SISTEMA LISTO PARA DESCARGAS**\n"
+    hello_msg += f"✅ **SYSTEM READY FOR DOWNLOADS**\n"
     hello_msg += f"{'='*50}\n"
 
     if not is_premium_account:
-        hello_msg += f"\n💡 **Tip:** Actualiza a Premium para mejor rendimiento\n"
+        hello_msg += f"\n💡 **Tip:** Upgrade to Premium for better performance\n"
         hello_msg += f"📎 https://telegram.org/premium"
 
     await client.send_message(entity, hello_msg)
-    print("✅ Mensaje de bienvenida enviado al canal")
+    print("✅ Welcome message sent to channel")
     print("\n" + "🎉 " * 20)
-    print("DAEMON COMPLETAMENTE INICIALIZADO Y LISTO")
+    print("DAEMON FULLY INITIALIZED AND READY")
     print("🎉 " * 20 + "\n")
 
 async def log_reply(message, reply):
@@ -463,7 +463,7 @@ async def set_progress(filename, message, received, total):
             eta_seconds = (total - received) / speed if speed > 0 else 0
 
             progress_message = f"📥 {percentage:.1f}% ({format_bytes(received)} / {format_bytes(total)})\n"
-            progress_message += f"⚡ Velocidad: {format_speed(speed)}\n"
+            progress_message += f"⚡ Speed: {format_speed(speed)}\n"
             progress_message += f"⏱️ ETA: {format_time(eta_seconds)}"
 
             # Guardar velocidad para estadísticas (con lock)
@@ -511,120 +511,120 @@ with TelegramClient(getSession(), api_id, api_hash,
                 output = "Unknown command"
 
                 if command == "help":
-                    output = "📚 **COMANDOS DISPONIBLES**\n\n"
-                    output += "**Información:**\n"
-                    output += "├─ `status` - Ver descargas activas e info de cuenta\n"
-                    output += "├─ `config` - Ver configuración actual\n"
-                    output += "├─ `stats` - Ver estadísticas de sesión\n"
-                    output += "└─ `help` - Mostrar esta ayuda\n\n"
-                    output += "**Gestión:**\n"
-                    output += "├─ `queue` - Ver archivos en cola\n"
-                    output += "├─ `list` - Listar archivos descargados\n"
-                    output += "├─ `clean` - Limpiar archivos temporales\n"
-                    output += "├─ `pause` - Pausar descargas\n"
-                    output += "└─ `resume` - Reanudar descargas\n\n"
-                    output += "**Uso:**\n"
-                    output += "└─ Reenvía cualquier archivo al canal para descargarlo\n\n"
-                    output += f"💡 Versión: {TDD_VERSION}"
+                    output = "📚 **AVAILABLE COMMANDS**\n\n"
+                    output += "**Information:**\n"
+                    output += "├─ `status` - View active downloads and account info\n"
+                    output += "├─ `config` - View current configuration\n"
+                    output += "├─ `stats` - View session statistics\n"
+                    output += "└─ `help` - Show this help\n\n"
+                    output += "**Management:**\n"
+                    output += "├─ `queue` - View files in queue\n"
+                    output += "├─ `list` - List downloaded files\n"
+                    output += "├─ `clean` - Clean temporary files\n"
+                    output += "├─ `pause` - Pause downloads\n"
+                    output += "└─ `resume` - Resume downloads\n\n"
+                    output += "**Usage:**\n"
+                    output += "└─ Forward any file to the channel to download it\n\n"
+                    output += f"💡 Version: {TDD_VERSION}"
 
                 elif command == "config":
-                    output = "⚙️  **CONFIGURACIÓN ACTUAL**\n\n"
-                    output += f"👤 **Cuenta:**\n"
-                    output += f"├─ Tipo: {'Premium ⭐' if is_premium_account else 'Estándar 📱'}\n"
-                    output += f"├─ Límite archivo: {max_file_size} MB\n"
+                    output = "⚙️  **CURRENT CONFIGURATION**\n\n"
+                    output += f"👤 **Account:**\n"
+                    output += f"├─ Type: {'Premium ⭐' if is_premium_account else 'Standard 📱'}\n"
+                    output += f"├─ File limit: {max_file_size} MB\n"
                     output += f"└─ Workers: {worker_count}\n\n"
-                    output += f"📂 **Rutas:**\n"
-                    output += f"├─ Descargas: `{downloadFolder}`\n"
-                    output += f"└─ Temporal: `{tempFolder}`\n\n"
-                    output += f"🔧 **Opciones:**\n"
-                    output += f"├─ Duplicados: `{duplicates}`\n"
+                    output += f"📂 **Paths:**\n"
+                    output += f"├─ Downloads: `{downloadFolder}`\n"
+                    output += f"└─ Temporary: `{tempFolder}`\n\n"
+                    output += f"🔧 **Options:**\n"
+                    output += f"├─ Duplicates: `{duplicates}`\n"
                     if TELEGRAM_DAEMON_FILE_FILTER:
-                        output += f"├─ Filtros: `{TELEGRAM_DAEMON_FILE_FILTER}`\n"
-                    output += f"└─ Estado: {'⏸️ Pausado' if download_paused else '▶️ Activo'}\n\n"
+                        output += f"├─ Filters: `{TELEGRAM_DAEMON_FILE_FILTER}`\n"
+                    output += f"└─ Status: {'⏸️ Paused' if download_paused else '▶️ Active'}\n\n"
                     if is_premium_account:
-                        output += f"✨ **Optimizaciones Premium:**\n"
-                        output += f"├─ Sin límites de velocidad\n"
-                        output += f"├─ Chunks optimizados\n"
-                        output += f"└─ Paralelismo mejorado"
+                        output += f"✨ **Premium Optimizations:**\n"
+                        output += f"├─ No speed limits\n"
+                        output += f"├─ Optimized chunks\n"
+                        output += f"└─ Enhanced parallelism"
 
                 elif command == "stats":
                     uptime = datetime.now() - stats['session_start']
-                    # Usar constante para número de muestras de velocidad
+                    # Use constant for speed sample count
                     recent_speeds = list(stats['download_speeds'])[-SPEED_SAMPLES_FOR_AVERAGE:]
                     avg_speed = sum(recent_speeds) / len(recent_speeds) if recent_speeds else 0
 
-                    output = "📊 **ESTADÍSTICAS DE SESIÓN**\n\n"
-                    output += f"⏱️ **Tiempo activo:** {format_time(uptime.total_seconds())}\n"
-                    output += f"📅 **Inicio:** {stats['session_start'].strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                    output += f"📥 **Descargas:**\n"
+                    output = "📊 **SESSION STATISTICS**\n\n"
+                    output += f"⏱️ **Uptime:** {format_time(uptime.total_seconds())}\n"
+                    output += f"📅 **Started:** {stats['session_start'].strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                    output += f"📥 **Downloads:**\n"
                     output += f"├─ Total: {stats['total_downloads']}\n"
-                    output += f"├─ Exitosas: {stats['successful_downloads']} ✅\n"
-                    output += f"├─ Fallidas: {stats['failed_downloads']} ❌\n"
+                    output += f"├─ Successful: {stats['successful_downloads']} ✅\n"
+                    output += f"├─ Failed: {stats['failed_downloads']} ❌\n"
                     if stats['total_downloads'] > 0:
                         success_rate = (stats['successful_downloads'] / stats['total_downloads']) * 100
-                        output += f"└─ Tasa éxito: {success_rate:.1f}%\n\n"
+                        output += f"└─ Success rate: {success_rate:.1f}%\n\n"
 
-                    output += f"💾 **Datos:**\n"
-                    output += f"├─ Total descargado: {format_bytes(stats['total_bytes'])}\n"
+                    output += f"💾 **Data:**\n"
+                    output += f"├─ Total downloaded: {format_bytes(stats['total_bytes'])}\n"
                     if avg_speed > 0:
-                        output += f"├─ Velocidad promedio: {format_speed(avg_speed)}\n"
+                        output += f"├─ Average speed: {format_speed(avg_speed)}\n"
                     if stats['largest_file']['name']:
-                        output += f"└─ Archivo más grande:\n"
+                        output += f"└─ Largest file:\n"
                         output += f"    • {stats['largest_file']['name']}\n"
                         output += f"    • {format_bytes(stats['largest_file']['size'])}\n"
 
                 elif command == "list":
-                    # Seguridad: no usar shell=True
+                    # Security: don't use shell=True
                     result = subprocess.run(["ls", "-lh", downloadFolder], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                     output = result.stdout.decode('utf-8')
                     if output and output.strip():
-                        output = f"📁 **Archivos descargados:**\n\n```\n{output}\n```"
+                        output = f"📁 **Downloaded files:**\n\n```\n{output}\n```"
                     else:
-                        output = "📁 La carpeta de descargas está vacía"
+                        output = "📁 Download folder is empty"
 
                 elif command == "status":
                     try:
                         if in_progress:
-                            output = "📥 **DESCARGAS ACTIVAS:**\n\n"
+                            output = "📥 **ACTIVE DOWNLOADS:**\n\n"
                             for filename, progress in in_progress.items():
                                 output += f"📄 **{filename}**\n{progress}\n\n"
                         else:
-                            output = "✅ **Sin descargas activas**\n\n"
+                            output = "✅ **No active downloads**\n\n"
 
-                        # Información de cuenta
+                        # Account information
                         output += f"{'─'*40}\n"
-                        output += f"🏷️ **INFORMACIÓN DE CUENTA**\n\n"
-                        output += f"👤 Tipo: **{'Premium ⭐' if is_premium_account else 'Estándar 📱'}**\n"
-                        output += f"📁 Límite: **{max_file_size} MB**\n"
+                        output += f"🏷️ **ACCOUNT INFORMATION**\n\n"
+                        output += f"👤 Type: **{'Premium ⭐' if is_premium_account else 'Standard 📱'}**\n"
+                        output += f"📁 Limit: **{max_file_size} MB**\n"
                         output += f"🔄 Workers: **{worker_count}**\n"
-                        output += f"📊 Estado: **{'⏸️ Pausado' if download_paused else '▶️ Activo'}**\n"
+                        output += f"📊 Status: **{'⏸️ Paused' if download_paused else '▶️ Active'}**\n"
 
                         if is_premium_account:
-                            output += f"\n⚡ **Optimizaciones Premium activas**"
+                            output += f"\n⚡ **Premium optimizations active**"
                         else:
-                            output += f"\n💡 Considera Premium para mejor rendimiento"
+                            output += f"\n💡 Consider Premium for better performance"
 
                     except Exception as e:
-                        output = f"❌ Error al verificar estado: {str(e)}"
+                        output = f"❌ Error checking status: {str(e)}"
 
                 elif command == "pause":
-                    # Usar Event para sincronización thread-safe
+                    # Use Event for thread-safe synchronization
                     download_pause_event.clear()
-                    output = "⏸️ **Descargas pausadas**\n\n"
-                    output += "Las descargas actuales continuarán, pero no se procesarán nuevos archivos de la cola.\n\n"
-                    output += "Escribe `resume` para reanudar."
+                    output = "⏸️ **Downloads paused**\n\n"
+                    output += "Current downloads will continue, but new files won't be processed from the queue.\n\n"
+                    output += "Type `resume` to continue."
 
                 elif command == "resume":
-                    # Usar Event para sincronización thread-safe
+                    # Use Event for thread-safe synchronization
                     download_pause_event.set()
-                    output = "▶️ **Descargas reanudadas**\n\n"
-                    output += "El procesamiento de la cola se ha reactivado."
+                    output = "▶️ **Downloads resumed**\n\n"
+                    output += "Queue processing has been reactivated."
 
                 elif command == "clean":
-                    output = "🧹 **Limpiando archivos temporales...**\n\n"
-                    output += f"📂 Carpeta: `{tempFolder}`\n\n"
+                    output = "🧹 **Cleaning temporary files...**\n\n"
+                    output += f"📂 Folder: `{tempFolder}`\n\n"
 
-                    # Seguridad: usar glob en lugar de shell=True
+                    # Security: use glob instead of shell=True
                     import os
                     temp_files = glob.glob(os.path.join(tempFolder, f"*.{TELEGRAM_DAEMON_TEMP_SUFFIX}"))
                     removed_count = 0
@@ -637,9 +637,9 @@ with TelegramClient(getSession(), api_id, api_hash,
                             print(f"Error removing {temp_file}: {e}")
 
                     if removed_count > 0:
-                        output += f"✅ **{removed_count} archivo(s) temporal(es) eliminado(s)**"
+                        output += f"✅ **{removed_count} temporary file(s) removed**"
                     else:
-                        output += "ℹ️ **Sin archivos temporales para eliminar**"
+                        output += "ℹ️ **No temporary files to remove**"
 
                 elif command == "queue":
                     try:
@@ -648,17 +648,17 @@ with TelegramClient(getSession(), api_id, api_hash,
                             files_in_queue.append(getFilename(q[0]))
 
                         if files_in_queue:
-                            output = f"📋 **ARCHIVOS EN COLA ({len(files_in_queue)})**\n\n"
+                            output = f"📋 **FILES IN QUEUE ({len(files_in_queue)})**\n\n"
                             for i, filename in enumerate(files_in_queue, 1):
                                 output += f"{i}. {filename}\n"
                         else:
-                            output = "✅ **La cola está vacía**\n\n"
-                            output += "Reenvía archivos al canal para añadirlos a la cola."
+                            output = "✅ **Queue is empty**\n\n"
+                            output += "Forward files to the channel to add them to the queue."
                     except Exception as e:
-                        output = f"❌ Error al verificar cola: {str(e)}"
+                        output = f"❌ Error checking queue: {str(e)}"
                 else:
-                    output = "❓ **Comando no reconocido**\n\n"
-                    output += "Escribe `help` para ver los comandos disponibles."
+                    output = "❓ **Unknown command**\n\n"
+                    output += "Type `help` to see available commands."
 
                 await log_reply(event, output)
 
@@ -666,67 +666,67 @@ with TelegramClient(getSession(), api_id, api_hash,
                 if hasattr(event.media, 'document') or hasattr(event.media,'photo'):
                     filename=getFilename(event)
 
-                    # Verificar filtros de archivo
+                    # Check file filters
                     if not is_file_allowed(filename):
-                        await event.reply(f"⏭️ **Archivo filtrado**\n\n"
+                        await event.reply(f"⏭️ **File filtered**\n\n"
                                         f"📄 {filename}\n"
-                                        f"🎯 Extensiones permitidas: `{TELEGRAM_DAEMON_FILE_FILTER}`")
+                                        f"🎯 Allowed extensions: `{TELEGRAM_DAEMON_FILE_FILTER}`")
                         return
 
-                    # Verificar tamaño del archivo
+                    # Check file size
                     if hasattr(event.media, 'document'):
                         file_size_mb = event.media.document.size / (1024 * 1024)
 
                         if not is_premium_account and file_size_mb > 2000:
                             message = await event.reply(
-                                f"❌ **ARCHIVO DEMASIADO GRANDE**\n\n"
-                                f"📄 **Archivo:** {filename}\n"
-                                f"📦 **Tamaño:** {file_size_mb:.2f} MB\n"
-                                f"⚠️  **Límite actual:** 2,000 MB\n\n"
+                                f"❌ **FILE TOO LARGE**\n\n"
+                                f"📄 **File:** {filename}\n"
+                                f"📦 **Size:** {file_size_mb:.2f} MB\n"
+                                f"⚠️  **Current limit:** 2,000 MB\n\n"
                                 f"{'─'*40}\n"
-                                f"💡 **SOLUCIÓN**\n"
-                                f"Actualiza a Telegram Premium para:\n"
-                                f"• Archivos hasta 4GB\n"
-                                f"• Velocidad sin límites\n"
-                                f"• Prioridad en descargas\n\n"
+                                f"💡 **SOLUTION**\n"
+                                f"Upgrade to Telegram Premium for:\n"
+                                f"• Files up to 4GB\n"
+                                f"• No speed limits\n"
+                                f"• Download priority\n\n"
                                 f"📎 https://telegram.org/premium"
                             )
                             return
                         elif file_size_mb > max_file_size:
                             message = await event.reply(
-                                f"❌ **Archivo excede límite configurado**\n\n"
-                                f"📄 **Archivo:** {filename}\n"
-                                f"📦 **Tamaño:** {file_size_mb:.2f} MB\n"
-                                f"⚠️  **Límite:** {max_file_size} MB"
+                                f"❌ **File exceeds configured limit**\n\n"
+                                f"📄 **File:** {filename}\n"
+                                f"📦 **Size:** {file_size_mb:.2f} MB\n"
+                                f"⚠️  **Limit:** {max_file_size} MB"
                             )
                             return
 
-                        # Archivo válido
+                        # Valid file
                         if ( path.exists("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX)) or
                              path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
-                            message=await event.reply(f"⏭️ **{filename}** ya existe. Ignorando.")
+                            message=await event.reply(f"⏭️ **{filename}** already exists. Ignoring.")
                         else:
                             queue_size = queue.qsize()
 
-                            message_text = f"✅ **Añadido a la cola**\n\n"
-                            message_text += f"📄 **Archivo:** {filename}\n"
-                            message_text += f"📦 **Tamaño:** {format_bytes(event.media.document.size)}\n"
-                            message_text += f"📋 **Posición en cola:** {queue_size + 1}\n"
+                            message_text = f"✅ **Added to queue**\n\n"
+                            message_text += f"📄 **File:** {filename}\n"
+                            message_text += f"📦 **Size:** {format_bytes(event.media.document.size)}\n"
+                            message_text += f"📋 **Queue position:** {queue_size + 1}\n"
                             if is_premium_account and file_size_mb > 2000:
-                                message_text += f"\n⭐ **Premium:** Archivo grande detectado"
+                                message_text += f"\n⭐ **Premium:** Large file detected"
 
                             message=await event.reply(message_text)
                             await queue.put([event, message])
                     else:
-                        # Fotos
+                        # Photos
                         if ( path.exists("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX)) or
                              path.exists("{0}/{1}".format(downloadFolder,filename)) ) and duplicates == "ignore":
-                            message=await event.reply(f"⏭️ **{filename}** ya existe. Ignorando.")
+                            message=await event.reply(f"⏭️ **{filename}** already exists. Ignoring.")
                         else:
-                            message=await event.reply(f"✅ **{filename}** añadido a la cola")
+                            message=await event.reply(f"✅ **{filename}** added to queue")
                             await queue.put([event, message])
                 else:
-                    message=await event.reply("❌ **No descargable**\n\nEnvía el archivo como documento.")
+                    message=await event.reply("❌ **Not downloadable**\n\nSend the file as a document.")
 
         except Exception as e:
                 print('Events handler error: ', e)
@@ -758,22 +758,22 @@ with TelegramClient(getSession(), api_id, api_hash,
 
                 size_mb = size / (1024 * 1024)
 
-                # Incrementar contador total de descargas (thread-safe)
+                # Increment total downloads counter (thread-safe)
                 async with stats_lock:
                     stats['total_downloads'] += 1
 
-                # Mensaje de inicio de descarga mejorado
-                download_info = f"🚀 **INICIANDO DESCARGA**\n\n"
-                download_info += f"📄 **Archivo:** {filename}\n"
-                download_info += f"📦 **Tamaño:** {format_bytes(size)}"
+                # Improved download start message
+                download_info = f"🚀 **STARTING DOWNLOAD**\n\n"
+                download_info += f"📄 **File:** {filename}\n"
+                download_info += f"📦 **Size:** {format_bytes(size)}"
 
                 if size_mb > 0:
                     download_info += f" ({size_mb:.2f} MB)"
 
-                download_info += f"\n🔄 **Modo:** {'Premium ⭐' if is_premium_account else 'Estándar 📱'}\n"
+                download_info += f"\n🔄 **Mode:** {'Premium ⭐' if is_premium_account else 'Standard 📱'}\n"
 
                 if is_premium_account and size_mb > 2000:
-                    download_info += f"\n💎 **Archivo grande Premium detectado**"
+                    download_info += f"\n💎 **Premium large file detected**"
 
                 await log_reply(message, download_info)
 
@@ -811,22 +811,22 @@ with TelegramClient(getSession(), api_id, api_hash,
                         error_msg = str(download_error)
 
                         if retry_count < MAX_RETRIES:
-                            # Linear backoff: espera aumenta linealmente (5s, 10s, 15s)
+                            # Linear backoff: wait increases linearly (5s, 10s, 15s)
                             wait_time = retry_count * RETRY_DELAY_BASE
                             await log_reply(message,
-                                f"⚠️ **Reintento {retry_count}/{MAX_RETRIES}**\n\n"
+                                f"⚠️ **Retry {retry_count}/{MAX_RETRIES}**\n\n"
                                 f"Error: {error_msg}\n"
-                                f"Esperando {wait_time}s...")
+                                f"Waiting {wait_time}s...")
                             await asyncio.sleep(wait_time)
                         else:
                             raise download_error
 
-                # Descarga completada exitosamente
+                # Download completed successfully
                 set_progress(filename, message, 100, 100)
                 move("{0}/{1}.{2}".format(tempFolder,filename,TELEGRAM_DAEMON_TEMP_SUFFIX),
                      "{0}/{1}".format(downloadFolder,filename))
 
-                # Actualizar estadísticas (thread-safe)
+                # Update statistics (thread-safe)
                 async with stats_lock:
                     stats['successful_downloads'] += 1
                     stats['total_bytes'] += size
@@ -834,57 +834,57 @@ with TelegramClient(getSession(), api_id, api_hash,
                     if size > stats['largest_file']['size']:
                         stats['largest_file'] = {'name': filename, 'size': size}
 
-                # Calcular tiempo y velocidad
+                # Calculate time and speed
                 download_time = time.time() - download_start_times.get(filename, time.time())
                 avg_speed = size / download_time if download_time > 0 else 0
 
-                # Mensaje de finalización mejorado
-                completion_msg = f"✅ **DESCARGA COMPLETADA**\n\n"
-                completion_msg += f"📄 **Archivo:** {filename}\n"
-                completion_msg += f"📦 **Tamaño:** {format_bytes(size)}"
+                # Improved completion message
+                completion_msg = f"✅ **DOWNLOAD COMPLETED**\n\n"
+                completion_msg += f"📄 **File:** {filename}\n"
+                completion_msg += f"📦 **Size:** {format_bytes(size)}"
 
                 if size_mb > 1:
                     completion_msg += f" ({size_mb:.2f} MB)"
 
-                completion_msg += f"\n⏱️ **Tiempo:** {format_time(download_time)}\n"
+                completion_msg += f"\n⏱️ **Time:** {format_time(download_time)}\n"
 
                 if avg_speed > 0:
-                    completion_msg += f"⚡ **Velocidad promedio:** {format_speed(avg_speed)}\n"
+                    completion_msg += f"⚡ **Average speed:** {format_speed(avg_speed)}\n"
 
-                completion_msg += f"📁 **Ubicación:** `{downloadFolder}`\n\n"
+                completion_msg += f"📁 **Location:** `{downloadFolder}`\n\n"
                 completion_msg += f"{'─'*40}\n"
-                completion_msg += f"✨ Descarga #{stats['successful_downloads']} de esta sesión"
+                completion_msg += f"✨ Download #{stats['successful_downloads']} of this session"
 
                 await log_reply(message, completion_msg)
 
                 queue.task_done()
 
             except Exception as e:
-                # Actualizar estadísticas de fallos (thread-safe)
+                # Update failure statistics (thread-safe)
                 async with stats_lock:
                     stats['failed_downloads'] += 1
 
                 try:
-                    error_msg = f"❌ **ERROR EN DESCARGA**\n\n"
-                    error_msg += f"📄 **Archivo:** {filename}\n"
+                    error_msg = f"❌ **DOWNLOAD ERROR**\n\n"
+                    error_msg += f"📄 **File:** {filename}\n"
                     error_msg += f"🚨 **Error:** {str(e)}\n"
-                    error_msg += f"🔄 **Reintentos agotados:** {MAX_RETRIES}\n\n"
+                    error_msg += f"🔄 **Retries exhausted:** {MAX_RETRIES}\n\n"
 
-                    # Sugerencias específicas
+                    # Specific suggestions
                     error_lower = str(e).lower()
                     if "file too large" in error_lower or "flood" in error_lower:
                         if not is_premium_account:
-                            error_msg += f"💡 **Solución sugerida:**\n"
-                            error_msg += f"Actualiza a Premium para:\n"
-                            error_msg += f"• Archivos hasta 4GB\n"
-                            error_msg += f"• Sin límites de velocidad\n"
-                            error_msg += f"• Reintentos automáticos mejorados\n\n"
+                            error_msg += f"💡 **Suggested solution:**\n"
+                            error_msg += f"Upgrade to Premium for:\n"
+                            error_msg += f"• Files up to 4GB\n"
+                            error_msg += f"• No speed limits\n"
+                            error_msg += f"• Enhanced automatic retries\n\n"
                             error_msg += f"📎 https://telegram.org/premium"
                         else:
-                            error_msg += f"💡 El archivo será omitido."
+                            error_msg += f"💡 File will be skipped."
                     elif "timeout" in error_lower:
-                        error_msg += f"💡 **Problema de red**\n"
-                        error_msg += f"Verifica tu conexión a internet."
+                        error_msg += f"💡 **Network problem**\n"
+                        error_msg += f"Check your internet connection."
 
                     await log_reply(message, error_msg)
                 except Exception as log_exc:

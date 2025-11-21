@@ -329,47 +329,47 @@ When the daemon starts, you'll receive a message in your Telegram channel like t
 ```
 ==================================================
 🚀 TELEGRAM DOWNLOAD DAEMON
-📦 Versión 2.0-Premium-Enhanced
+📦 Version 2.0-Premium-Enhanced
 ==================================================
 
-🔧 INFORMACIÓN DEL SISTEMA
+🔧 SYSTEM INFORMATION
 ├─ 📚 Telethon: 1.36.0
 ├─ 🐍 Python Asyncio
 ├─ 🖥️  CPU Cores: 4
-└─ 📅 Inicio: 2025-01-15 10:30:45
+└─ 📅 Started: 2025-01-15 10:30:45
 
 ──────────────────────────────────────────────────
-🌟 CUENTA PREMIUM DETECTADA 🌟
+🌟 PREMIUM ACCOUNT DETECTED 🌟
 ──────────────────────────────────────────────────
 
-👤 ESTADO DE CUENTA
-├─ ⭐ Tipo: Premium
-├─ 📁 Límite de archivo: 4,000 MB
-└─ 🔄 Workers paralelos: 12
+👤 ACCOUNT STATUS
+├─ ⭐ Type: Premium
+├─ 📁 File limit: 4,000 MB
+└─ 🔄 Parallel workers: 12
 
-✨ CARACTERÍSTICAS ACTIVAS
-✅ Archivos hasta 4GB
-✅ Sin límites de velocidad
-✅ Descarga optimizada
-✅ Prioridad en servidores
-✅ Workers paralelos mejorados
+✨ ACTIVE FEATURES
+✅ Files up to 4GB
+✅ No speed limits
+✅ Optimized downloads
+✅ Server priority
+✅ Enhanced parallel workers
 
-🎯 OPTIMIZACIONES PREMIUM
-⚡ Sin límites FLOOD_WAIT
-📦 Chunks de 1MB para grandes archivos
-🚀 Paralelismo x3 mejorado
-💎 Prioridad en servidores Telegram
+🎯 PREMIUM OPTIMIZATIONS
+⚡ No FLOOD_WAIT limits
+📦 1MB chunks for large files
+🚀 3x improved parallelism
+💎 Priority on Telegram servers
 
-⚙️  CONFIGURACIÓN
-├─ 📂 Destino: /downloads
-├─ 🔄 Duplicados: rename
-└─ 💾 Temporal: /downloads
+⚙️  CONFIGURATION
+├─ 📂 Destination: /downloads
+├─ 🔄 Duplicates: rename
+└─ 💾 Temporary: /downloads
 
-📝 COMANDOS DISPONIBLES
-└─ Escribe help para ver todos los comandos
+📝 AVAILABLE COMMANDS
+└─ Type help to see all commands
 
 ==================================================
-✅ SISTEMA LISTO PARA DESCARGAS
+✅ SYSTEM READY FOR DOWNLOADS
 ==================================================
 ```
 
