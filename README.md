@@ -224,6 +224,7 @@ The **first time** you run the container, you must launch it **interactively** t
 
 ```bash
 # Interactive initial run (required first time)
+# OJO; hacer referencia el "services" que muestre el docker-compose.yml
 docker-compose run --rm telegram-download-daemon
 # Follow the on-screen instructions:
 # 1. Enter your phone number
