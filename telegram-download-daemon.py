@@ -466,9 +466,13 @@ async def set_progress(filename, message, received, total):
 
 with TelegramClient(getSession(), api_id, api_hash,
                     proxy=proxy,
-                    connection_retries=5,
-                    retry_delay=2,
-                    timeout=60,
+                    # FIXED (v3): Parámetros optimizados para timeout
+                    connection_retries=20,      # Aumentado de 5
+                    retry_delay=10,             # Aumentado de 2
+                    timeout=600,                # Aumentado de 60 (10 minutos)
+                    connect_timeout=60,         # Nuevo: timeout conexión inicial
+                    request_timeout=300,        # Nuevo: timeout request individual
+                    flood_sleep_threshold=120,  # Nuevo: espera proactiva
                     device_model="TDD Premium Enhanced",
                     system_version="2.0",
                     app_version=TDD_VERSION,
