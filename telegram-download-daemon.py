@@ -2,7 +2,7 @@
 # Telegram Download Daemon - Enhanced Premium Edition
 # Original Author: Alfonso E.M. <alfonso@el-magnifico.org>
 # Enhanced with Premium features and improved UX
-# Version: 4.0-Premium-Enhanced (FIXED)
+# Version: 5.0-Premium-Enhanced (FIXED)
 # FIXES: Global variable handling, race conditions, and error handling
 
 from os import getenv, path
@@ -466,12 +466,9 @@ async def set_progress(filename, message, received, total):
 
 with TelegramClient(getSession(), api_id, api_hash,
                     proxy=proxy,
-                    # FIXED (v4): Parámetros optimizados para timeout (SOLO VÁLIDOS)
-                    connection_retries=20,      # Aumentado de 5
-                    retry_delay=10,             # Aumentado de 2
-                    timeout=600,                # Aumentado de 60 (10 minutos) ⭐
-                    auto_reconnect=True,        # Reconexión automática
-                    report_errors=True,         # Reportar errores
+                    connection_retries=20,      # FIXED (v5): Aumentado de 5
+                    retry_delay=10,             # FIXED (v5): Aumentado de 2
+                    timeout=600,                # FIXED (v5): Aumentado de 60 (10 minutos para evitar TimeoutError)
                     device_model="TDD Premium Enhanced",
                     system_version="2.0",
                     app_version=TDD_VERSION,
